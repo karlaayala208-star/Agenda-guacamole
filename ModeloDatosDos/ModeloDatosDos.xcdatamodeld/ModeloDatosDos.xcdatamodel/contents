@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="24299" systemVersion="25A354" minimumToolsVersion="Automatic" sourceLanguage="Swift" userDefinedModelVersionIdentifier="">
+    <entity name="Alumno" representedClassName="Alumno" syncable="YES" codeGenerationType="class">
+        <attribute name="edad" optional="YES" attributeType="Integer 16" defaultValueString="0" usesScalarValueType="YES"/>
+        <attribute name="nombre" optional="YES" attributeType="String"/>
+        <attribute name="telefono" optional="YES" attributeType="String"/>
+        <attribute name="ubicacion" optional="YES" attributeType="String"/>
+        <relationship name="hobbies" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Hobbies" inverseName="alumnos" inverseEntity="Hobbies"/>
+    </entity>
+    <entity name="Hobbies" representedClassName="Hobbies" syncable="YES" codeGenerationType="class">
+        <attribute name="attribute" optional="YES"/>
+        <attribute name="nombre" optional="YES" attributeType="String"/>
+        <relationship name="alumnos" optional="YES" toMany="YES" deletionRule="Nullify" destinationEntity="Alumno" inverseName="hobbies" inverseEntity="Alumno"/>
+    </entity>
+</model>
