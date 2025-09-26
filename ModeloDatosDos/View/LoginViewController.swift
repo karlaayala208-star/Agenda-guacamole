@@ -6,6 +6,7 @@ class LoginViewController: UIViewController {
     @IBOutlet weak var usernameField: UITextField!
     @IBOutlet weak var passwordField: UITextField!
     @IBOutlet weak var loginButton: UIButton!
+    @IBOutlet weak var registerButton: UIButton!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -34,6 +35,11 @@ class LoginViewController: UIViewController {
         loginButton.setTitleColor(.white, for: .normal)
         loginButton.layer.cornerRadius = 8
         loginButton.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        
+        // Configurar botón de registro
+        registerButton.backgroundColor = UIColor.clear
+        registerButton.setTitleColor(UIColor.systemBlue, for: .normal)
+        registerButton.titleLabel?.font = UIFont.systemFont(ofSize: 16, weight: .regular)
     }
     
     // MARK: - Actions
@@ -53,11 +59,30 @@ class LoginViewController: UIViewController {
         }
     }
     
+    @IBAction func registerTapped(_ sender: UIButton) {
+        // Navegar al formulario de registro
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let registerVC = storyboard.instantiateViewController(withIdentifier: "RegisterViewController") as! RegisterViewController
+        
+        // Presentar como modal
+        let navController = UINavigationController(rootViewController: registerVC)
+        present(navController, animated: true)
+    }
+    
     // MARK: - Helper Methods
     private func validateCredentials(username: String, password: String) -> Bool {
         // Validación simple - puedes modificar esto según tus necesidades
         // Por ejemplo: usuario "admin" y contraseña "123456"
-        return username.lowercased() == "admin" && password == "123456"
+        // En una app real, consultarías tu base de datos de usuarios registrados
+        
+        // Usuarios por defecto para testing
+        let validUsers = [
+            "admin": "123456",
+            "user": "password",
+            "test": "123456"
+        ]
+        
+        return validUsers[username.lowercased()] == password
     }
     
     private func navigateToAgenda() {
