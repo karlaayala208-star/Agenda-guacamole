@@ -125,26 +125,30 @@ class RegisterViewController: UIViewController {
     }
     
     private func isUsernameAvailable(_ username: String) -> Bool {
-        // Simulación - en una app real, consultarías tu base de datos
-        // Por simplicidad, solo evitamos el usuario "admin" que ya existe
-        return username.lowercased() != "admin"
+        return UserManager.shared.isUsernameAvailable(username)
     }
     
     private func registerUser(name: String, email: String, username: String, password: String, phone: String?) {
-        // Aquí guardarías el usuario en tu base de datos
-        // Por ahora, solo simulamos el éxito
+        // Crear usuario con UserManager
+        let user = User(name: name, email: email, username: username, password: password, phone: phone)
         
-        let alert = UIAlertController(
-            title: "¡Registro exitoso!",
-            message: "Tu cuenta ha sido creada correctamente. Ahora puedes iniciar sesión.",
-            preferredStyle: .alert
-        )
-        
-        alert.addAction(UIAlertAction(title: "Iniciar sesión", style: .default) { [weak self] _ in
-            self?.navigateToLogin()
-        })
-        
-        present(alert, animated: true)
+        if UserManager.shared.registerUser(user) {
+            // Registro exitoso
+            let alert = UIAlertController(
+                title: "¡Registro exitoso!",
+                message: "Tu cuenta ha sido creada correctamente. Ahora puedes iniciar sesión con el usuario: \(username)",
+                preferredStyle: .alert
+            )
+            
+            alert.addAction(UIAlertAction(title: "Iniciar sesión", style: .default) { [weak self] _ in
+                self?.navigateToLogin()
+            })
+            
+            present(alert, animated: true)
+        } else {
+            // Error en el registro
+            showAlert(title: "Error", message: "No se pudo registrar el usuario. El nombre de usuario podría estar en uso.")
+        }
     }
     
     private func navigateToLogin() {

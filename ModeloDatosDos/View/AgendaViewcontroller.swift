@@ -10,10 +10,23 @@ final class AgendaViewcontroller: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Agenda"
+        setupTitle()
         navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addPerson))
 //        cargarAlumnos()
         fetchPersons()
+    }
+    
+    private func setupTitle() {
+        // Mostrar el usuario actual si está disponible
+        if let currentUsername = UserDefaults.standard.string(forKey: "CurrentUser") {
+            if let user = UserManager.shared.getUser(by: currentUsername) {
+                title = "Agenda - \(user.name)"
+            } else {
+                title = "Agenda - \(currentUsername)"
+            }
+        } else {
+            title = "Agenda"
+        }
     }
 
     @objc func addPerson() {

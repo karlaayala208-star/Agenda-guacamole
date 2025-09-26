@@ -11,6 +11,9 @@ class LoginViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        
+        // Debug: imprimir usuarios disponibles (puedes comentar esta línea en producción)
+        UserManager.shared.printAllUsers()
     }
     
     // MARK: - UI Setup
@@ -52,6 +55,10 @@ class LoginViewController: UIViewController {
         
         // Validación simple (puedes cambiar estos valores o implementar una validación más compleja)
         if validateCredentials(username: username, password: password) {
+            // Guardar el usuario actual para uso en la app
+            UserDefaults.standard.set(username, forKey: "CurrentUser")
+            UserDefaults.standard.synchronize()
+            
             // Login exitoso - navegar a la agenda
             navigateToAgenda()
         } else {
@@ -71,18 +78,7 @@ class LoginViewController: UIViewController {
     
     // MARK: - Helper Methods
     private func validateCredentials(username: String, password: String) -> Bool {
-        // Validación simple - puedes modificar esto según tus necesidades
-        // Por ejemplo: usuario "admin" y contraseña "123456"
-        // En una app real, consultarías tu base de datos de usuarios registrados
-        
-        // Usuarios por defecto para testing
-        let validUsers = [
-            "admin": "123456",
-            "user": "password",
-            "test": "123456"
-        ]
-        
-        return validUsers[username.lowercased()] == password
+        return UserManager.shared.validateCredentials(username: username, password: password)
     }
     
     private func navigateToAgenda() {
