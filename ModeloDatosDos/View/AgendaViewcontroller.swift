@@ -146,4 +146,21 @@ final class AgendaViewcontroller: UITableViewController {
             }
         }
     }
+    
+    // MARK: - Navigation
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        // Deseleccionar la celda con animación
+        tableView.deselectRow(at: indexPath, animated: true)
+        
+        // Obtener la persona seleccionada
+        let selectedPerson = persons[indexPath.row]
+        
+        // Crear el DetailViewController
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let detailVC = storyboard.instantiateViewController(withIdentifier: "DetailViewController") as! DetailViewController
+        detailVC.person = selectedPerson
+        
+        // Navegar al detalle
+        navigationController?.pushViewController(detailVC, animated: true)
+    }
 }
