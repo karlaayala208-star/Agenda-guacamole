@@ -64,10 +64,10 @@
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="tYM-JB-38T">
-                                <rect key="frame" x="0.0" y="30" width="393" height="788"/>
+                                <rect key="frame" x="0.0" y="79" width="393" height="659"/>
                                 <subviews>
-                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" distribution="fill" spacing="6" translatesAutoresizingMaskIntoConstraints="NO" id="NJn-xd-g95">
-                                        <rect key="frame" x="10" y="0.0" width="373" height="788"/>
+                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="6" translatesAutoresizingMaskIntoConstraints="NO" id="NJn-xd-g95">
+                                        <rect key="frame" x="10" y="0.0" width="373" height="659"/>
                                         <subviews>
                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Nombre" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cPa-Fm-SXi">
                                                 <rect key="frame" x="0.0" y="0.0" width="373" height="21"/>
@@ -154,19 +154,10 @@
                                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                                 <textInputTraits key="textInputTraits"/>
                                             </textField>
-                                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Bz6-3r-hUv">
-                                                <rect key="frame" x="0.0" y="340" width="373" height="50"/>
-                                                <constraints>
-                                                    <constraint firstAttribute="height" constant="50" id="ZmK-vX-1eQ"/>
-                                                </constraints>
-                                                <state key="normal" title="Button"/>
-                                                <buttonConfiguration key="configuration" style="filled" title="Guardar">
-                                                    <fontDescription key="titleFontDescription" type="system" pointSize="18" weight="medium"/>
-                                                </buttonConfiguration>
-                                                <connections>
-                                                    <action selector="saveTapped:" destination="ckE-Ad-wZ9" id="hZ5-3f-2v9"/>
-                                                </connections>
-                                            </button>
+                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="UcK-48-x8L">
+                                                <rect key="frame" x="0.0" y="340" width="373" height="319"/>
+                                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                            </view>
                                         </subviews>
                                     </stackView>
                                 </subviews>
@@ -178,14 +169,42 @@
                                     <constraint firstItem="NJn-xd-g95" firstAttribute="top" secondItem="tYM-JB-38T" secondAttribute="top" id="qfB-4D-N8X"/>
                                 </constraints>
                             </view>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="1NF-KA-76f">
+                                <rect key="frame" x="0.0" y="738" width="393" height="80"/>
+                                <subviews>
+                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Bz6-3r-hUv">
+                                        <rect key="frame" x="20" y="15" width="353" height="50"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="50" id="ZmK-vX-1eQ"/>
+                                        </constraints>
+                                        <state key="normal" title="Button"/>
+                                        <buttonConfiguration key="configuration" style="filled" title="Guardar">
+                                            <fontDescription key="titleFontDescription" type="system" weight="medium" pointSize="18"/>
+                                        </buttonConfiguration>
+                                        <connections>
+                                            <action selector="saveTapped:" destination="ckE-Ad-wZ9" id="hZ5-3f-2v9"/>
+                                        </connections>
+                                    </button>
+                                </subviews>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <constraints>
+                                    <constraint firstItem="Bz6-3r-hUv" firstAttribute="centerY" secondItem="1NF-KA-76f" secondAttribute="centerY" id="2cY-fH-gKe"/>
+                                    <constraint firstAttribute="trailing" secondItem="Bz6-3r-hUv" secondAttribute="trailing" constant="20" id="5fg-Sh-vFS"/>
+                                    <constraint firstAttribute="height" constant="80" id="7vR-qP-9mJ"/>
+                                    <constraint firstItem="Bz6-3r-hUv" firstAttribute="leading" secondItem="1NF-KA-76f" secondAttribute="leading" constant="20" id="xp9-RW-Ge7"/>
+                                </constraints>
+                            </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="hb7-8P-Y8J"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
+                            <constraint firstItem="1NF-KA-76f" firstAttribute="bottom" secondItem="hb7-8P-Y8J" secondAttribute="bottom" id="3kE-7g-Sde"/>
+                            <constraint firstItem="1NF-KA-76f" firstAttribute="top" secondItem="tYM-JB-38T" secondAttribute="bottom" id="8Ph-TM-dVf"/>
                             <constraint firstItem="hb7-8P-Y8J" firstAttribute="trailing" secondItem="tYM-JB-38T" secondAttribute="trailing" id="AIM-Fh-tCv"/>
+                            <constraint firstItem="hb7-8P-Y8J" firstAttribute="trailing" secondItem="1NF-KA-76f" secondAttribute="trailing" id="Ct9-uF-2nG"/>
                             <constraint firstItem="tYM-JB-38T" firstAttribute="top" secondItem="hb7-8P-Y8J" secondAttribute="top" constant="20" id="ZY1-Yo-8oc"/>
                             <constraint firstItem="tYM-JB-38T" firstAttribute="leading" secondItem="hb7-8P-Y8J" secondAttribute="leading" id="Zvw-G2-zgy"/>
-                            <constraint firstItem="hb7-8P-Y8J" firstAttribute="bottom" secondItem="tYM-JB-38T" secondAttribute="bottom" id="hE5-kx-NMx"/>
+                            <constraint firstItem="1NF-KA-76f" firstAttribute="leading" secondItem="hb7-8P-Y8J" secondAttribute="leading" id="qeJ-wL-7ka"/>
                         </constraints>
                     </view>
                     <connections>
