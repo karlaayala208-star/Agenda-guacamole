@@ -4,6 +4,10 @@ import CoreData
 final class AgendaViewcontroller: UITableViewController {
     /// variable que almacena las persona a mostrar en la agenda
     var persons: [Person] = []
+    /// Diccionario para organizar personas por letra inicial
+    var personsByLetter: [String: [Person]] = [:]
+    /// Array con las letras ordenadas para las secciones
+    var sortedLetters: [String] = []
 
     // Obtener contexto desde AppDelegate (plantilla UIKit + Core Data)
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -73,12 +77,32 @@ final class AgendaViewcontroller: UITableViewController {
         // Filtrar solo las personas del usuario actual
         request.predicate = NSPredicate(format: "ownerUsername == %@", currentUsername)
         
+        // Ordenar alfabéticamente por nombre
+        request.sortDescriptors = [NSSortDescriptor(key: "nombre", ascending: true)]
+        
         do {
             persons = try context.fetch(request)
+            organizePersonsByLetter()
             tableView.reloadData()
         } catch {
             print("Error fetching persons: \(error)")
         }
+    }
+    
+    // Organizar personas por letra inicial
+    private func organizePersonsByLetter() {
+        personsByLetter.removeAll()
+        
+        for person in persons {
+            let firstLetter = getFirstLetter(from: person.nombre ?? "")
+            if personsByLetter[firstLetter] == nil {
+                personsByLetter[firstLetter] = []
+            }
+            personsByLetter[firstLetter]?.append(person)
+        }
+        
+        // Ordenar las letras alfabéticamente
+        sortedLetters = personsByLetter.keys.sorted()
     }
     
     private func migrateExistingPersonsIfNeeded() {
@@ -144,97 +168,79 @@ final class AgendaViewcontroller: UITableViewController {
             UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
         }
     }
-
-    // MARK: - Acción del botón + (conectar en Storyboard)
-    @IBAction func agregarAlumno(_ sender: UIBarButtonItem) {
-        let alert = UIAlertController(
-            title: "Nuevo Alumno",
-            message: "Ingresa nombre, edad, curso y créditos",
-            preferredStyle: .alert
-        )
-        
-        alert.addTextField { $0.placeholder = "Nombre" }
-        alert.addTextField {
-            $0.placeholder = "Edad"
-            $0.keyboardType = .numberPad
-        }
-        alert.addTextField { $0.placeholder = "Curso" }
-        alert.addTextField {
-            $0.placeholder = "Créditos"
-            $0.keyboardType = .numberPad
-        }
-        
-        let guardar = UIAlertAction(title: "Guardar", style: .default) { _ in
-            guard
-                let nombre = alert.textFields?[0].text, !nombre.isEmpty,
-                let edadTexto = alert.textFields?[1].text, let edad = Int16(edadTexto),
-                let cursoNombre = alert.textFields?[2].text, !cursoNombre.isEmpty,
-                let creditosTexto = alert.textFields?[3].text, let creditos = Int16(creditosTexto)
-            else {
-                return
-            }
-            
-            // Crear alumno
-            let nuevoAlumno = Person(context: self.context)
-            nuevoAlumno.nombre = nombre
-            nuevoAlumno.edad = edad
-            
-//            // Crear curso
-            let nuevoCurso = Hobbie(context: self.context)
-            nuevoCurso.setValue(cursoNombre, forKey: "nombre")
-            nuevoCurso.setValue(UUID(), forKey: "creditos")
-
-            // Relación con KVC
-            let alumnosSet = nuevoCurso.mutableSetValue(forKey: "alumnos")
-            alumnosSet.add(nuevoAlumno)
-            
-            do {
-                try self.context.save()
-                self.cargarAlumnos()
-            } catch {
-                print("Error al guardar: \(error)")
-            }
-        }
-        
-        alert.addAction(guardar)
-        alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
-        present(alert, animated: true)
+    
+    // MARK: - TableView DataSource
+    override func numberOfSections(in tableView: UITableView) -> Int {
+        return sortedLetters.count
     }
     
-    // MARK: - Cargar datos
-    func cargarAlumnos() {
-        let request: NSFetchRequest<Person> = Person.fetchRequest()
-        do {
-            persons = try context.fetch(request)
-            tableView.reloadData()
-        } catch {
-            print("Error al cargar alumnos: \(error)")
-        }
-    }
-    
-    // MARK: - TableView
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return persons.count
+        let letter = sortedLetters[section]
+        return personsByLetter[letter]?.count ?? 0
+    }
+    
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        return sortedLetters[section]
+    }
+    
+    override func sectionIndexTitles(for tableView: UITableView) -> [String]? {
+        return sortedLetters
     }
     
     override func tableView(_ tableView: UITableView,
                             cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "AlumnoCell", for: indexPath)
-        let alumno = persons[indexPath.row]
         
-        var cursoNombre = "Sin curso"
-        var creditosTexto = ""
+        // Obtener la persona de la sección y fila correspondiente
+        let letter = sortedLetters[indexPath.section]
+        guard let personsInSection = personsByLetter[letter],
+              indexPath.row < personsInSection.count else {
+            return cell
+        }
         
-//        if let curso = alumno.value(forKey: "curso") as? Curso {
-//            cursoNombre = curso.value(forKey: "nombre") as? String ?? "Sin curso"
-//            if let c = curso.value(forKey: "creditos") as? Int16 {
-//                creditosTexto = " - Créditos: \(c)"
-//            }
-//        }
+        let person = personsInSection[indexPath.row]
         
-        cell.textLabel?.text = alumno.nombre
-        cell.detailTextLabel?.text = "Edad: \(alumno.edad) | Curso: \(cursoNombre)\(creditosTexto)"
+        // Obtener el nombre y la inicial
+        let name = person.nombre ?? "Sin nombre"
+        let firstLetter = getFirstLetter(from: name)
+        
+        // Mostrar el nombre completo
+        cell.textLabel?.text = name
+        
+        // Mostrar información adicional con la letra inicial al final
+        var additionalInfo = ""
+        if let telefono = person.telefono, !telefono.isEmpty {
+            additionalInfo += "Tel: \(telefono)"
+        }
+        if person.edad > 0 {
+            if !additionalInfo.isEmpty { additionalInfo += " | " }
+            additionalInfo += "Edad: \(person.edad)"
+        }
+        if let ubicacion = person.ubicacion, !ubicacion.isEmpty {
+            if !additionalInfo.isEmpty { additionalInfo += " | " }
+            additionalInfo += "Dir: \(ubicacion)"
+        }
+        
+        // Agregar la letra inicial al final
+        if !additionalInfo.isEmpty {
+            additionalInfo += " • \(firstLetter)"
+        } else {
+            additionalInfo = "• \(firstLetter)"
+        }
+        
+        cell.detailTextLabel?.text = additionalInfo
+        
         return cell
+    }
+    
+    // Helper function para obtener la primera letra en mayúscula
+    private func getFirstLetter(from name: String) -> String {
+        guard let firstChar = name.first else { return "#" }
+        let letter = String(firstChar).uppercased()
+        
+        // Verificar si es una letra válida del alfabeto
+        let alphabetRange = "A"..."Z"
+        return alphabetRange.contains(letter) ? letter : "#"
     }
     
     // Eliminar con swipe
@@ -242,12 +248,21 @@ final class AgendaViewcontroller: UITableViewController {
                             commit editingStyle: UITableViewCell.EditingStyle,
                             forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            let alumno = persons[indexPath.row]
-            context.delete(alumno)
+            let letter = sortedLetters[indexPath.section]
+            guard let personsInSection = personsByLetter[letter],
+                  indexPath.row < personsInSection.count else {
+                return
+            }
+            
+            let personToDelete = personsInSection[indexPath.row]
+            
+            // Eliminar de Core Data
+            context.delete(personToDelete)
+            
             do {
                 try context.save()
-                persons.remove(at: indexPath.row)
-                tableView.deleteRows(at: [indexPath], with: .fade)
+                // Recargar datos después de eliminar
+                fetchPersons()
             } catch {
                 print("Error al eliminar: \(error)")
             }
@@ -259,8 +274,14 @@ final class AgendaViewcontroller: UITableViewController {
         // Deseleccionar la celda con animación
         tableView.deselectRow(at: indexPath, animated: true)
         
-        // Obtener la persona seleccionada
-        let selectedPerson = persons[indexPath.row]
+        // Obtener la persona seleccionada de la sección correspondiente
+        let letter = sortedLetters[indexPath.section]
+        guard let personsInSection = personsByLetter[letter],
+              indexPath.row < personsInSection.count else {
+            return
+        }
+        
+        let selectedPerson = personsInSection[indexPath.row]
         
         // Crear el DetailViewController
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
