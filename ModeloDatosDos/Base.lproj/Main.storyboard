@@ -66,7 +66,7 @@
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="tYM-JB-38T">
                                 <rect key="frame" x="0.0" y="30" width="393" height="788"/>
                                 <subviews>
-                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" distribution="fillProportionally" spacing="6" translatesAutoresizingMaskIntoConstraints="NO" id="NJn-xd-g95">
+                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" distribution="fill" spacing="6" translatesAutoresizingMaskIntoConstraints="NO" id="NJn-xd-g95">
                                         <rect key="frame" x="10" y="0.0" width="373" height="788"/>
                                         <subviews>
                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Nombre" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cPa-Fm-SXi">
@@ -154,10 +154,19 @@
                                                 <fontDescription key="fontDescription" type="system" pointSize="14"/>
                                                 <textInputTraits key="textInputTraits"/>
                                             </textField>
-                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="yhT-uR-CpG">
-                                                <rect key="frame" x="0.0" y="340" width="373" height="448"/>
-                                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                            </view>
+                                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Bz6-3r-hUv">
+                                                <rect key="frame" x="0.0" y="340" width="373" height="50"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="50" id="ZmK-vX-1eQ"/>
+                                                </constraints>
+                                                <state key="normal" title="Button"/>
+                                                <buttonConfiguration key="configuration" style="filled" title="Guardar">
+                                                    <fontDescription key="titleFontDescription" type="system" pointSize="18" weight="medium"/>
+                                                </buttonConfiguration>
+                                                <connections>
+                                                    <action selector="saveTapped:" destination="ckE-Ad-wZ9" id="hZ5-3f-2v9"/>
+                                                </connections>
+                                            </button>
                                         </subviews>
                                     </stackView>
                                 </subviews>
@@ -174,7 +183,7 @@
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <constraints>
                             <constraint firstItem="hb7-8P-Y8J" firstAttribute="trailing" secondItem="tYM-JB-38T" secondAttribute="trailing" id="AIM-Fh-tCv"/>
-                            <constraint firstItem="tYM-JB-38T" firstAttribute="top" secondItem="yV5-QT-VGP" secondAttribute="top" constant="30" id="ZY1-Yo-8oc"/>
+                            <constraint firstItem="tYM-JB-38T" firstAttribute="top" secondItem="hb7-8P-Y8J" secondAttribute="top" constant="20" id="ZY1-Yo-8oc"/>
                             <constraint firstItem="tYM-JB-38T" firstAttribute="leading" secondItem="hb7-8P-Y8J" secondAttribute="leading" id="Zvw-G2-zgy"/>
                             <constraint firstItem="hb7-8P-Y8J" firstAttribute="bottom" secondItem="tYM-JB-38T" secondAttribute="bottom" id="hE5-kx-NMx"/>
                         </constraints>
