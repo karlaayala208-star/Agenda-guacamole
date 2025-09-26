@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="3XY-we-4tm">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="login-view-controller">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
@@ -9,10 +9,89 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
+        <!--Login View Controller-->
+        <scene sceneID="login-scene-id">
+            <objects>
+                <viewController storyboardIdentifier="LoginViewController" id="login-view-controller" customClass="LoginViewController" customModule="ModeloDatosDos" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="login-main-view">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="login-container-view">
+                                <rect key="frame" x="30" y="300" width="333" height="252"/>
+                                <subviews>
+                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="20" translatesAutoresizingMaskIntoConstraints="NO" id="login-stack-view">
+                                        <rect key="frame" x="20" y="20" width="293" height="212"/>
+                                        <subviews>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Iniciar Sesión" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="login-title-label">
+                                                <rect key="frame" x="0.0" y="0.0" width="293" height="29"/>
+                                                <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="24"/>
+                                                <nil key="textColor"/>
+                                                <nil key="highlightedColor"/>
+                                            </label>
+                                            <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Usuario" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="username-text-field">
+                                                <rect key="frame" x="0.0" y="49" width="293" height="40"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="40" id="username-height-constraint"/>
+                                                </constraints>
+                                                <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                                <textInputTraits key="textInputTraits" autocapitalizationType="none" autocorrectionType="no"/>
+                                            </textField>
+                                            <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" contentHorizontalAlignment="left" contentVerticalAlignment="center" borderStyle="roundedRect" placeholder="Contraseña" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="password-text-field">
+                                                <rect key="frame" x="0.0" y="109" width="293" height="40"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="40" id="password-height-constraint"/>
+                                                </constraints>
+                                                <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                                <textInputTraits key="textInputTraits" autocapitalizationType="none" autocorrectionType="no" secureTextEntry="YES"/>
+                                            </textField>
+                                            <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="login-button">
+                                                <rect key="frame" x="0.0" y="169" width="293" height="43"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="43" id="login-button-height"/>
+                                                </constraints>
+                                                <state key="normal" title="Button"/>
+                                                <buttonConfiguration key="configuration" style="filled" title="Iniciar Sesión">
+                                                    <fontDescription key="titleFontDescription" type="system" weight="medium" pointSize="18"/>
+                                                </buttonConfiguration>
+                                                <connections>
+                                                    <action selector="loginTapped:" destination="login-view-controller" eventType="touchUpInside" id="login-button-action"/>
+                                                </connections>
+                                            </button>
+                                        </subviews>
+                                    </stackView>
+                                </subviews>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                <constraints>
+                                    <constraint firstAttribute="trailing" secondItem="login-stack-view" secondAttribute="trailing" constant="20" id="login-stack-trailing"/>
+                                    <constraint firstAttribute="bottom" secondItem="login-stack-view" secondAttribute="bottom" constant="20" id="login-stack-bottom"/>
+                                    <constraint firstItem="login-stack-view" firstAttribute="leading" secondItem="login-container-view" secondAttribute="leading" constant="20" id="login-stack-leading"/>
+                                    <constraint firstItem="login-stack-view" firstAttribute="top" secondItem="login-container-view" secondAttribute="top" constant="20" id="login-stack-top"/>
+                                </constraints>
+                            </view>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="login-safe-area"/>
+                        <color key="backgroundColor" systemColor="systemGray6Color"/>
+                        <constraints>
+                            <constraint firstItem="login-container-view" firstAttribute="centerY" secondItem="login-main-view" secondAttribute="centerY" id="login-container-center-y"/>
+                            <constraint firstItem="login-safe-area" firstAttribute="trailing" secondItem="login-container-view" secondAttribute="trailing" constant="30" id="login-container-trailing"/>
+                            <constraint firstItem="login-container-view" firstAttribute="leading" secondItem="login-safe-area" secondAttribute="leading" constant="30" id="login-container-leading"/>
+                        </constraints>
+                    </view>
+                    <connections>
+                        <outlet property="loginButton" destination="login-button" id="login-button-outlet"/>
+                        <outlet property="passwordField" destination="password-text-field" id="password-field-outlet"/>
+                        <outlet property="usernameField" destination="username-text-field" id="username-field-outlet"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="login-first-responder" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-500" y="20"/>
+        </scene>
         <!--Agenda Viewcontroller-->
         <scene sceneID="vji-KU-uSB">
             <objects>
-                <tableViewController id="IiZ-wK-rkc" customClass="AgendaViewcontroller" customModule="ModeloDatosDos" customModuleProvider="target" sceneMemberID="viewController">
+                <tableViewController storyboardIdentifier="AgendaViewController" id="IiZ-wK-rkc" customClass="AgendaViewcontroller" customModule="ModeloDatosDos" customModuleProvider="target" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" id="HRy-XC-X5K">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -305,7 +384,7 @@
         <!--Navigation Controller-->
         <scene sceneID="IZz-QA-zgs">
             <objects>
-                <navigationController automaticallyAdjustsScrollViewInsets="NO" id="3XY-we-4tm" sceneMemberID="viewController">
+                <navigationController storyboardIdentifier="NavigationController" automaticallyAdjustsScrollViewInsets="NO" id="3XY-we-4tm" sceneMemberID="viewController">
                     <toolbarItems/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="58i-hZ-emB">
                         <rect key="frame" x="0.0" y="59" width="393" height="44"/>
@@ -324,6 +403,9 @@
     <resources>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+        </systemColor>
+        <systemColor name="systemGray6Color">
+            <color red="0.94901960784313721" green="0.94901960784313721" blue="0.96862745098039216" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
     </resources>
 </document>
