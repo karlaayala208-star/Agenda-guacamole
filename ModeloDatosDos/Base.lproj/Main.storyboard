@@ -3,6 +3,7 @@
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
+        <capability name="Map view configurations" minToolsVersion="14.0"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="System colors in document resources" minToolsVersion="11.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
@@ -156,7 +157,24 @@
                                             </textField>
                                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="UcK-48-x8L">
                                                 <rect key="frame" x="0.0" y="340" width="373" height="319"/>
+                                                <subviews>
+                                                    <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="Epi-J9-hOB">
+                                                        <rect key="frame" x="0.0" y="8" width="373" height="303"/>
+                                                        <subviews>
+                                                            <mapView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="szV-sB-aeN">
+                                                                <rect key="frame" x="0.0" y="0.0" width="373" height="303"/>
+                                                                <standardMapConfiguration key="preferredConfiguration"/>
+                                                            </mapView>
+                                                        </subviews>
+                                                    </stackView>
+                                                </subviews>
                                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                                                <constraints>
+                                                    <constraint firstItem="Epi-J9-hOB" firstAttribute="top" secondItem="UcK-48-x8L" secondAttribute="top" constant="8" id="6jL-BK-7Wn"/>
+                                                    <constraint firstAttribute="trailing" secondItem="Epi-J9-hOB" secondAttribute="trailing" id="U7d-qH-ZQ5"/>
+                                                    <constraint firstItem="Epi-J9-hOB" firstAttribute="leading" secondItem="UcK-48-x8L" secondAttribute="leading" id="YEO-ds-2Lu"/>
+                                                    <constraint firstAttribute="bottom" secondItem="Epi-J9-hOB" secondAttribute="bottom" constant="8" id="xVe-dz-8lU"/>
+                                                </constraints>
                                             </view>
                                         </subviews>
                                     </stackView>
@@ -211,6 +229,7 @@
                         <outlet property="addressField" destination="2zC-pj-V7S" id="EWA-Cd-OGI"/>
                         <outlet property="ageField" destination="Ddv-iB-GZ1" id="lLT-DC-zbR"/>
                         <outlet property="hobbiesField" destination="lci-xf-eph" id="6DO-dy-zfD"/>
+                        <outlet property="mapView" destination="szV-sB-aeN" id="vih-82-JTC"/>
                         <outlet property="nameField" destination="Cc0-F3-sya" id="yu5-78-Adf"/>
                         <outlet property="phoneField" destination="uLG-kz-dDQ" id="rRH-3E-VCF"/>
                     </connections>

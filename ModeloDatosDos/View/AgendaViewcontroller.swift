@@ -2,7 +2,7 @@ import UIKit
 import CoreData
 
 final class AgendaViewcontroller: UITableViewController {
-    //TODO aqui hace algo
+    /// variable que almacena las persona a mostrar en la agenda
     var persons: [Person] = []
 
     // Obtener contexto desde AppDelegate (plantilla UIKit + Core Data)
@@ -22,6 +22,8 @@ final class AgendaViewcontroller: UITableViewController {
         vc.onSave = { [weak self] in
             self?.fetchPersons()
         }
+
+        //TODO: review what is the better approach, push or present
         navigationController?.pushViewController(vc, animated: true)
 //        navigationController?.present(vc, animated: true)
     }
