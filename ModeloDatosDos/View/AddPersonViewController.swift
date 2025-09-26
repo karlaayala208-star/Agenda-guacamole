@@ -19,15 +19,15 @@ class AddPersonViewController: UIViewController {
     }
 
     @IBAction func saveTapped(_ sender: Any) {
-//        let person = Person(context: context)
-//        person.id = UUID()
-//        person.name = nameField.text ?? ""
-//        person.phone = phoneField.text ?? ""
-//        person.address = addressField.text ?? ""
-//        person.age = Int16(ageField.text ?? "0") ?? 0
-//        person.hobbies = hobbiesField.text ?? ""
-//        person.latitude = selectedLocation?.latitude ?? 0
-//        person.longitude = selectedLocation?.longitude ?? 0
+        let person = Person(context: context)
+        person.id = UUID()
+        person.nombre = nameField.text ?? ""
+        person.telefono = phoneField.text ?? ""
+        person.ubicacion = addressField.text ?? ""
+        person.edad = Int16(ageField.text ?? "0") ?? 0
+        person.hobie = hobbiesField.text ?? ""
+        person.latitude = selectedLocation?.latitude ?? 0
+        person.longitude = selectedLocation?.longitude ?? 0
 
         do {
             try context.save()

@@ -182,7 +182,7 @@
                                             <fontDescription key="titleFontDescription" type="system" weight="medium" pointSize="18"/>
                                         </buttonConfiguration>
                                         <connections>
-                                            <action selector="saveTapped:" destination="ckE-Ad-wZ9" id="hZ5-3f-2v9"/>
+                                            <action selector="saveTapped:" destination="ckE-Ad-wZ9" eventType="touchUpInside" id="oh0-nx-L4c"/>
                                         </connections>
                                     </button>
                                 </subviews>
