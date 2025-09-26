@@ -3,7 +3,7 @@ import CoreData
 
 final class AgendaViewcontroller: UITableViewController {
     //TODO aqui hace algo
-    var alumnos: [Person] = []
+    var persons: [Person] = []
 
     // Obtener contexto desde AppDelegate (plantilla UIKit + Core Data)
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -11,9 +11,30 @@ final class AgendaViewcontroller: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Agenda"
-        cargarAlumnos()
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addPerson))
+//        cargarAlumnos()
+        fetchPersons()
     }
-    
+
+    @objc func addPerson() {
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let vc = storyboard.instantiateViewController(withIdentifier: "AddPersonViewController") as! AddPersonViewController
+        vc.onSave = { [weak self] in
+            self?.fetchPersons()
+        }
+        navigationController?.pushViewController(vc, animated: true)
+    }
+
+    func fetchPersons() {
+        let request: NSFetchRequest<Person> = Person.fetchRequest()
+        do {
+            persons = try context.fetch(request)
+            tableView.reloadData()
+        } catch {
+            print("Error fetching persons: \(error)")
+        }
+    }
+
     // MARK: - Acción del botón + (conectar en Storyboard)
     @IBAction func agregarAlumno(_ sender: UIBarButtonItem) {
         let alert = UIAlertController(
@@ -74,7 +95,7 @@ final class AgendaViewcontroller: UITableViewController {
     func cargarAlumnos() {
         let request: NSFetchRequest<Person> = Person.fetchRequest()
         do {
-            alumnos = try context.fetch(request)
+            persons = try context.fetch(request)
             tableView.reloadData()
         } catch {
             print("Error al cargar alumnos: \(error)")
@@ -83,13 +104,13 @@ final class AgendaViewcontroller: UITableViewController {
     
     // MARK: - TableView
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return alumnos.count
+        return persons.count
     }
     
     override func tableView(_ tableView: UITableView,
                             cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "AlumnoCell", for: indexPath)
-        let alumno = alumnos[indexPath.row]
+        let alumno = persons[indexPath.row]
         
         var cursoNombre = "Sin curso"
         var creditosTexto = ""
@@ -111,11 +132,11 @@ final class AgendaViewcontroller: UITableViewController {
                             commit editingStyle: UITableViewCell.EditingStyle,
                             forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            let alumno = alumnos[indexPath.row]
+            let alumno = persons[indexPath.row]
             context.delete(alumno)
             do {
                 try context.save()
-                alumnos.remove(at: indexPath.row)
+                persons.remove(at: indexPath.row)
                 tableView.deleteRows(at: [indexPath], with: .fade)
             } catch {
                 print("Error al eliminar: \(error)")
