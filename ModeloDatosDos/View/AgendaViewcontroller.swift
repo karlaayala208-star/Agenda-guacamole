@@ -1,16 +1,16 @@
 import UIKit
 import CoreData
 
-class viewcontroller: UITableViewController {
+final class AgendaViewcontroller: UITableViewController {
     //TODO aqui hace algo
-    var alumnos: [Alumno] = []
-    
+    var alumnos: [Person] = []
+
     // Obtener contexto desde AppDelegate (plantilla UIKit + Core Data)
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Alumnos"
+        title = "Agenda"
         cargarAlumnos()
     }
     
@@ -44,15 +44,15 @@ class viewcontroller: UITableViewController {
             }
             
             // Crear alumno
-            let nuevoAlumno = Alumno(context: self.context)
+            let nuevoAlumno = Person(context: self.context)
             nuevoAlumno.nombre = nombre
             nuevoAlumno.edad = edad
             
-            // Crear curso
-            let nuevoCurso = Curso(context: self.context)
+//            // Crear curso
+            let nuevoCurso = Hobbie(context: self.context)
             nuevoCurso.setValue(cursoNombre, forKey: "nombre")
-            nuevoCurso.setValue(creditos, forKey: "creditos")
-            
+            nuevoCurso.setValue(UUID(), forKey: "creditos")
+
             // Relación con KVC
             let alumnosSet = nuevoCurso.mutableSetValue(forKey: "alumnos")
             alumnosSet.add(nuevoAlumno)
@@ -72,7 +72,7 @@ class viewcontroller: UITableViewController {
     
     // MARK: - Cargar datos
     func cargarAlumnos() {
-        let request: NSFetchRequest<Alumno> = Alumno.fetchRequest()
+        let request: NSFetchRequest<Person> = Person.fetchRequest()
         do {
             alumnos = try context.fetch(request)
             tableView.reloadData()
@@ -94,12 +94,12 @@ class viewcontroller: UITableViewController {
         var cursoNombre = "Sin curso"
         var creditosTexto = ""
         
-        if let curso = alumno.value(forKey: "curso") as? Curso {
-            cursoNombre = curso.value(forKey: "nombre") as? String ?? "Sin curso"
-            if let c = curso.value(forKey: "creditos") as? Int16 {
-                creditosTexto = " - Créditos: \(c)"
-            }
-        }
+//        if let curso = alumno.value(forKey: "curso") as? Curso {
+//            cursoNombre = curso.value(forKey: "nombre") as? String ?? "Sin curso"
+//            if let c = curso.value(forKey: "creditos") as? Int16 {
+//                creditosTexto = " - Créditos: \(c)"
+//            }
+//        }
         
         cell.textLabel?.text = alumno.nombre
         cell.detailTextLabel?.text = "Edad: \(alumno.edad) | Curso: \(cursoNombre)\(creditosTexto)"
