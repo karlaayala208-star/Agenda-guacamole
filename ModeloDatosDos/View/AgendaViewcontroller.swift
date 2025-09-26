@@ -219,30 +219,85 @@ final class AgendaViewcontroller: UITableViewController {
         return alphabetRange.contains(letter) ? letter : "#"
     }
     
-    // Eliminar con swipe
-    override func tableView(_ tableView: UITableView,
-                            commit editingStyle: UITableViewCell.EditingStyle,
-                            forRowAt indexPath: IndexPath) {
-        if editingStyle == .delete {
-            let letter = sortedLetters[indexPath.section]
-            guard let personsInSection = personsByLetter[letter],
-                  indexPath.row < personsInSection.count else {
-                return
-            }
-            
-            let personToDelete = personsInSection[indexPath.row]
-            
-            // Eliminar de Core Data
-            context.delete(personToDelete)
-            
-            do {
-                try context.save()
-                // Recargar datos después de eliminar
-                fetchPersons()
-            } catch {
-                print("Error al eliminar: \(error)")
-            }
+    // MARK: - Swipe Actions
+    override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
+        let letter = sortedLetters[indexPath.section]
+        guard let personsInSection = personsByLetter[letter],
+              indexPath.row < personsInSection.count else {
+            return nil
         }
+        
+        let person = personsInSection[indexPath.row]
+        
+        // Acción de eliminar
+        let deleteAction = UIContextualAction(style: .destructive, title: "Eliminar") { [weak self] (action, view, completionHandler) in
+            self?.deletePerson(person, at: indexPath)
+            completionHandler(true)
+        }
+        deleteAction.backgroundColor = .systemRed
+        deleteAction.image = UIImage(systemName: "trash")
+        
+        // Acción de editar
+        let editAction = UIContextualAction(style: .normal, title: "Editar") { [weak self] (action, view, completionHandler) in
+            self?.editPerson(person)
+            completionHandler(true)
+        }
+        editAction.backgroundColor = .systemBlue
+        editAction.image = UIImage(systemName: "pencil")
+        
+        let configuration = UISwipeActionsConfiguration(actions: [deleteAction, editAction])
+        configuration.performsFirstActionWithFullSwipe = false // Evita que el swipe completo elimine automáticamente
+        
+        return configuration
+    }
+    
+    // Método para eliminar persona
+    private func deletePerson(_ person: Person, at indexPath: IndexPath) {
+        let alert = UIAlertController(
+            title: "Eliminar contacto",
+            message: "¿Estás seguro de que quieres eliminar a \(person.nombre ?? "esta persona")?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Eliminar", style: .destructive) { [weak self] _ in
+            self?.performDelete(person)
+        })
+        
+        present(alert, animated: true)
+    }
+    
+    private func performDelete(_ person: Person) {
+        context.delete(person)
+        
+        do {
+            try context.save()
+            fetchPersons() // Recargar datos después de eliminar
+        } catch {
+            print("Error al eliminar: \(error)")
+            showAlert(title: "Error", message: "No se pudo eliminar el contacto. Inténtalo de nuevo.")
+        }
+    }
+    
+    // Método para editar persona
+    private func editPerson(_ person: Person) {
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let editVC = storyboard.instantiateViewController(withIdentifier: "AddPersonViewController") as! AddPersonViewController
+        
+        // Configurar el controlador para modo edición
+        editVC.title = "Editar Contacto"
+        editVC.personToEdit = person
+        editVC.onSave = { [weak self] in
+            self?.fetchPersons()
+        }
+        
+        navigationController?.pushViewController(editVC, animated: true)
+    }
+    
+    private func showAlert(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
     
     // MARK: - Navigation

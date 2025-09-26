@@ -17,13 +17,21 @@ class AddPersonViewController: UIViewController {
     var selectedLocation: CLLocationCoordinate2D?
     private let geocoder = CLGeocoder()
     
+    // Propiedad para modo edición
+    var personToEdit: Person?
+    
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Nueva Persona"
+        title = personToEdit != nil ? "Editar Contacto" : "Nueva Persona"
         
         setupMapView()
         addGestureRecognizerToMapView()
         setupTextFields()
+        
+        // Si estamos editando, cargar los datos existentes
+        if let person = personToEdit {
+            loadPersonData(person)
+        }
     }
     
     private func setupMapView() {
@@ -73,6 +81,11 @@ class AddPersonViewController: UIViewController {
     private func setupSaveButton() {
         saveButton.layer.cornerRadius = 8
         saveButton.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        
+        // Cambiar el texto del botón según el modo
+        let buttonTitle = personToEdit != nil ? "Actualizar" : "Guardar"
+        saveButton.setTitle(buttonTitle, for: .normal)
+        
         updateSaveButtonState(isEnabled: false)
     }
     
@@ -246,14 +259,24 @@ class AddPersonViewController: UIViewController {
             return
         }
         
-        let person = Person(context: context)
-        person.id = UUID()
+        let person: Person
+        
+        if let existingPerson = personToEdit {
+            // Modo edición - actualizar persona existente
+            person = existingPerson
+        } else {
+            // Modo creación - crear nueva persona
+            person = Person(context: context)
+            person.id = UUID()
+            person.ownerUsername = currentUsername // Asignar el usuario propietario solo para nuevos contactos
+        }
+        
+        // Actualizar campos (tanto para crear como para editar)
         person.nombre = nameField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         person.telefono = phoneField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         person.ubicacion = addressField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         person.edad = Int16(ageField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "0") ?? 0
         person.hobie = hobbiesField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        person.ownerUsername = currentUsername // Asignar el usuario propietario
 
         // Coordenadas
         person.latitude = selectedLocation?.latitude ?? 0
@@ -265,7 +288,8 @@ class AddPersonViewController: UIViewController {
             navigationController?.popViewController(animated: true)
         } catch {
             print("Error saving person: \(error)")
-            showAlert(title: "Error", message: "No se pudo guardar la persona. Inténtalo de nuevo.")
+            let action = personToEdit != nil ? "actualizar" : "guardar"
+            showAlert(title: "Error", message: "No se pudo \(action) la persona. Inténtalo de nuevo.")
         }
     }
     
@@ -344,5 +368,38 @@ extension AddPersonViewController: UITextFieldDelegate {
         }
         
         return true
+    }
+}
+
+// MARK: - Edit Mode Support
+extension AddPersonViewController {
+    private func loadPersonData(_ person: Person) {
+        nameField.text = person.nombre
+        phoneField.text = person.telefono
+        addressField.text = person.ubicacion
+        ageField.text = person.edad > 0 ? String(person.edad) : ""
+        hobbiesField.text = person.hobie
+        
+        // Cargar ubicación si existe
+        if person.latitude != 0 || person.longitude != 0 {
+            let coordinate = CLLocationCoordinate2D(latitude: person.latitude, longitude: person.longitude)
+            selectedLocation = coordinate
+            
+            // Agregar pin al mapa
+            let annotation = MKPointAnnotation()
+            annotation.coordinate = coordinate
+            annotation.title = person.nombre ?? "Ubicación"
+            annotation.subtitle = person.ubicacion
+            mapView.addAnnotation(annotation)
+            
+            // Centrar mapa en la ubicación
+            let region = MKCoordinateRegion(center: coordinate, latitudinalMeters: 5000, longitudinalMeters: 5000)
+            mapView.setRegion(region, animated: false)
+        }
+        
+        // Validar formulario después de cargar datos
+        DispatchQueue.main.async {
+            self.validateForm()
+        }
     }
 }
