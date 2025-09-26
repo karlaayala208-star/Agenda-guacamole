@@ -200,35 +200,11 @@ final class AgendaViewcontroller: UITableViewController {
         
         let person = personsInSection[indexPath.row]
         
-        // Obtener el nombre y la inicial
-        let name = person.nombre ?? "Sin nombre"
-        let firstLetter = getFirstLetter(from: name)
+        // Mostrar solo el nombre del contacto
+        cell.textLabel?.text = person.nombre ?? "Sin nombre"
         
-        // Mostrar el nombre completo
-        cell.textLabel?.text = name
-        
-        // Mostrar información adicional con la letra inicial al final
-        var additionalInfo = ""
-        if let telefono = person.telefono, !telefono.isEmpty {
-            additionalInfo += "Tel: \(telefono)"
-        }
-        if person.edad > 0 {
-            if !additionalInfo.isEmpty { additionalInfo += " | " }
-            additionalInfo += "Edad: \(person.edad)"
-        }
-        if let ubicacion = person.ubicacion, !ubicacion.isEmpty {
-            if !additionalInfo.isEmpty { additionalInfo += " | " }
-            additionalInfo += "Dir: \(ubicacion)"
-        }
-        
-        // Agregar la letra inicial al final
-        if !additionalInfo.isEmpty {
-            additionalInfo += " • \(firstLetter)"
-        } else {
-            additionalInfo = "• \(firstLetter)"
-        }
-        
-        cell.detailTextLabel?.text = additionalInfo
+        // Limpiar el detailTextLabel para que no muestre información adicional
+        cell.detailTextLabel?.text = nil
         
         return cell
     }
