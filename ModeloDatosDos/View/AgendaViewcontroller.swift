@@ -10,20 +10,39 @@ final class AgendaViewcontroller: UITableViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
+        
+        // Verificar que hay un usuario logueado
+        guard UserManager.shared.isUserLoggedIn() else {
+            // Si no hay usuario logueado, regresar al login
+            navigateToLogin()
+            return
+        }
+        
         setupTitle()
-        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addPerson))
-//        cargarAlumnos()
+        setupNavigationBar()
         fetchPersons()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        // Recargar datos cuando regresamos a esta pantalla
+        fetchPersons()
+    }
+    
+    private func setupNavigationBar() {
+        // Botón para agregar persona
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addPerson))
+        
+        // Botón para logout
+        navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Salir", style: .plain, target: self, action: #selector(logoutTapped))
     }
     
     private func setupTitle() {
         // Mostrar el usuario actual si está disponible
-        if let currentUsername = UserDefaults.standard.string(forKey: "CurrentUser") {
-            if let user = UserManager.shared.getUser(by: currentUsername) {
-                title = "Agenda - \(user.name)"
-            } else {
-                title = "Agenda - \(currentUsername)"
-            }
+        if let user = UserManager.shared.getCurrentUser() {
+            title = "Agenda - \(user.name)"
+        } else if let currentUsername = UserManager.shared.getCurrentUsername() {
+            title = "Agenda - \(currentUsername)"
         } else {
             title = "Agenda"
         }
@@ -35,19 +54,94 @@ final class AgendaViewcontroller: UITableViewController {
         vc.onSave = { [weak self] in
             self?.fetchPersons()
         }
-
-        //TODO: review what is the better approach, push or present
         navigationController?.pushViewController(vc, animated: true)
-//        navigationController?.present(vc, animated: true)
     }
 
     func fetchPersons() {
+        guard let currentUsername = UserManager.shared.getCurrentUsername() else {
+            print("No hay usuario logueado")
+            persons = []
+            tableView.reloadData()
+            return
+        }
+        
+        // Primero, migrar datos existentes sin propietario
+        migrateExistingPersonsIfNeeded()
+        
         let request: NSFetchRequest<Person> = Person.fetchRequest()
+        
+        // Filtrar solo las personas del usuario actual
+        request.predicate = NSPredicate(format: "ownerUsername == %@", currentUsername)
+        
         do {
             persons = try context.fetch(request)
             tableView.reloadData()
         } catch {
             print("Error fetching persons: \(error)")
+        }
+    }
+    
+    private func migrateExistingPersonsIfNeeded() {
+        // Solo ejecutar una vez
+        let migrationKey = "PersonOwnerMigrationCompleted"
+        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
+        
+        let request: NSFetchRequest<Person> = Person.fetchRequest()
+        request.predicate = NSPredicate(format: "ownerUsername == nil OR ownerUsername == ''")
+        
+        do {
+            let personsWithoutOwner = try context.fetch(request)
+            if !personsWithoutOwner.isEmpty {
+                // Asignar todos los contactos existentes al primer usuario disponible
+                // o a un usuario por defecto
+                let defaultOwner = UserManager.shared.getCurrentUsername() ?? "admin"
+                
+                for person in personsWithoutOwner {
+                    person.ownerUsername = defaultOwner
+                }
+                
+                try context.save()
+                print("Migradas \(personsWithoutOwner.count) personas al usuario: \(defaultOwner)")
+            }
+            
+            UserDefaults.standard.set(true, forKey: migrationKey)
+            UserDefaults.standard.synchronize()
+        } catch {
+            print("Error en migración: \(error)")
+        }
+    }
+    
+    @objc func logoutTapped() {
+        let alert = UIAlertController(
+            title: "Cerrar sesión",
+            message: "¿Estás seguro de que quieres cerrar sesión?",
+            preferredStyle: .alert
+        )
+        
+        alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Cerrar sesión", style: .destructive) { [weak self] _ in
+            self?.performLogout()
+        })
+        
+        present(alert, animated: true)
+    }
+    
+    private func performLogout() {
+        UserManager.shared.logout()
+        navigateToLogin()
+    }
+    
+    private func navigateToLogin() {
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let loginVC = storyboard.instantiateViewController(withIdentifier: "LoginViewController") as! LoginViewController
+        
+        // Configurar como ventana principal
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let window = windowScene.windows.first {
+            window.rootViewController = loginVC
+            
+            // Animación de transición
+            UIView.transition(with: window, duration: 0.3, options: .transitionCrossDissolve, animations: nil)
         }
     }
 

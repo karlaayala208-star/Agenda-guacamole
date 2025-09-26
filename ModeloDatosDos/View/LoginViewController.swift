@@ -56,8 +56,7 @@ class LoginViewController: UIViewController {
         // Validación simple (puedes cambiar estos valores o implementar una validación más compleja)
         if validateCredentials(username: username, password: password) {
             // Guardar el usuario actual para uso en la app
-            UserDefaults.standard.set(username, forKey: "CurrentUser")
-            UserDefaults.standard.synchronize()
+            UserManager.shared.setCurrentUser(username)
             
             // Login exitoso - navegar a la agenda
             navigateToAgenda()

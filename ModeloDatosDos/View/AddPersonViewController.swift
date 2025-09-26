@@ -75,6 +75,12 @@ class AddPersonViewController: UIViewController {
     }
 
     @IBAction func saveTapped(_ sender: Any) {
+        // Verificar que hay un usuario logueado
+        guard let currentUsername = UserManager.shared.getCurrentUsername() else {
+            showAlert(title: "Error", message: "No hay un usuario logueado. Por favor, inicia sesión.")
+            return
+        }
+        
         let person = Person(context: context)
         person.id = UUID()
         person.nombre = nameField.text ?? ""
@@ -82,6 +88,7 @@ class AddPersonViewController: UIViewController {
         person.ubicacion = addressField.text ?? ""
         person.edad = Int16(ageField.text ?? "0") ?? 0
         person.hobie = hobbiesField.text ?? ""
+        person.ownerUsername = currentUsername // Asignar el usuario propietario
 
         // Coordenadas
         person.latitude = selectedLocation?.latitude ?? 0
@@ -93,6 +100,13 @@ class AddPersonViewController: UIViewController {
             navigationController?.popViewController(animated: true)
         } catch {
             print("Error saving person: \(error)")
+            showAlert(title: "Error", message: "No se pudo guardar la persona. Inténtalo de nuevo.")
         }
+    }
+    
+    private func showAlert(title: String, message: String) {
+        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
 }

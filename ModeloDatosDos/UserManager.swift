@@ -108,6 +108,33 @@ class UserManager {
         return registeredUsers.compactMap { User(from: $0.value) }
     }
     
+    // MARK: - Current User Management
+    
+    func setCurrentUser(_ username: String) {
+        UserDefaults.standard.set(username.lowercased(), forKey: "CurrentUser")
+        UserDefaults.standard.synchronize()
+    }
+    
+    func getCurrentUser() -> User? {
+        guard let currentUsername = UserDefaults.standard.string(forKey: "CurrentUser") else {
+            return nil
+        }
+        return getUser(by: currentUsername)
+    }
+    
+    func getCurrentUsername() -> String? {
+        return UserDefaults.standard.string(forKey: "CurrentUser")
+    }
+    
+    func logout() {
+        UserDefaults.standard.removeObject(forKey: "CurrentUser")
+        UserDefaults.standard.synchronize()
+    }
+    
+    func isUserLoggedIn() -> Bool {
+        return getCurrentUsername() != nil
+    }
+    
     // MARK: - Private Methods
     
     private func getRegisteredUsers() -> [String: [String: Any]] {

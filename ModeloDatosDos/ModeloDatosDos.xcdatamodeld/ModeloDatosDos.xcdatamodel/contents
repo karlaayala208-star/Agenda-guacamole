@@ -12,6 +12,7 @@
         <attribute name="latitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="longitude" optional="YES" attributeType="Double" defaultValueString="0.0" usesScalarValueType="YES"/>
         <attribute name="nombre" optional="YES" attributeType="String"/>
+        <attribute name="ownerUsername" optional="YES" attributeType="String"/>
         <attribute name="telefono" optional="YES" attributeType="String"/>
         <attribute name="ubicacion" optional="YES" attributeType="String"/>
         <relationship name="hobbies" optional="YES" maxCount="1" deletionRule="Nullify" destinationEntity="Hobbie" inverseName="alumnos" inverseEntity="Hobbie"/>

@@ -24,10 +24,10 @@ class DetailViewController: UIViewController {
 
         //Mostrar la informacion de person en el label
         infoLabel.text = """
-        📱 Teléfono: \(person.telefono ?? "No disponible")
-        📍 Dirección: \(person.ubicacion ?? "No disponible")
-        🎂 Edad: \(person.edad) años
-        🎯 Hobbies: \(person.hobie ?? "Ninguno")
+        📱 Teléfono: \(person.telefono ?? "No disponible") \n
+        📍 Dirección: \(person.ubicacion ?? "No disponible") \n
+        🎂 Edad: \(person.edad) años \n
+        🎯 Hobbies: \(person.hobie ?? "Ninguno") \n
         """
 
         //Mostrar la ubicacion en el mapa solo si hay coordenadas válidas
