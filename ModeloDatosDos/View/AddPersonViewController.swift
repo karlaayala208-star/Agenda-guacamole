@@ -1,6 +1,7 @@
 import UIKit
 import CoreData
 import MapKit
+import CoreLocation
 
 class AddPersonViewController: UIViewController {
     @IBOutlet weak var nameField: UITextField!
@@ -13,13 +14,15 @@ class AddPersonViewController: UIViewController {
     var onSave: (() -> Void)?
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     var selectedLocation: CLLocationCoordinate2D?
-
+    private let geocoder = CLGeocoder()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Nueva Persona"
         
         setupMapView()
         addGestureRecognizerToMapView()
+        setupTextFields()
     }
     
     private func setupMapView() {
@@ -40,6 +43,15 @@ class AddPersonViewController: UIViewController {
         
         // Mostrar la ubicación del usuario si está disponible
         mapView.showsUserLocation = true
+    }
+    
+    private func setupTextFields() {
+        // Configurar el delegate para el campo de dirección
+        addressField.delegate = self
+        
+        // Agregar target para cuando se termine de editar la dirección
+        addressField.addTarget(self, action: #selector(addressFieldDidEndEditing), for: .editingDidEnd)
+        addressField.addTarget(self, action: #selector(addressFieldDidChange), for: .editingChanged)
     }
 
     private func addGestureRecognizerToMapView() {
@@ -71,6 +83,80 @@ class AddPersonViewController: UIViewController {
             // Animar la vista hacia el punto seleccionado
             let region = MKCoordinateRegion(center: coordinate, latitudinalMeters: 10000, longitudinalMeters: 10000)
             mapView.setRegion(region, animated: true)
+        }
+    }
+    
+    // MARK: - Address Geocoding
+    @objc private func addressFieldDidEndEditing() {
+        geocodeAddress()
+    }
+    
+    @objc private func addressFieldDidChange() {
+        // Cancelar geocoding anterior si el usuario está escribiendo
+        geocoder.cancelGeocode()
+    }
+    
+    private func geocodeAddress() {
+        guard let address = addressField.text,
+              !address.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              address.count > 3 else {
+            return
+        }
+        
+        // Mostrar indicador de carga (opcional)
+        // Puedes agregar un activity indicator aquí
+        
+        geocoder.geocodeAddressString(address) { [weak self] (placemarks, error) in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("Error de geocodificación: \(error.localizedDescription)")
+                    // Optionally show an alert to the user
+                    return
+                }
+                
+                guard let placemark = placemarks?.first,
+                      let location = placemark.location else {
+                    print("No se encontró ubicación para la dirección: \(address)")
+                    return
+                }
+                
+                self.updateMapWithLocation(location.coordinate, address: address, placemark: placemark)
+            }
+        }
+    }
+    
+    private func updateMapWithLocation(_ coordinate: CLLocationCoordinate2D, address: String, placemark: CLPlacemark) {
+        selectedLocation = coordinate
+        
+        // Quitar anotaciones anteriores
+        mapView.removeAnnotations(mapView.annotations)
+        
+        // Crear anotación con información detallada
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = coordinate
+        annotation.title = placemark.name ?? address
+        
+        // Crear subtítulo más informativo
+        var subtitleComponents: [String] = []
+        if let locality = placemark.locality {
+            subtitleComponents.append(locality)
+        }
+        if let country = placemark.country {
+            subtitleComponents.append(country)
+        }
+        annotation.subtitle = subtitleComponents.isEmpty ? address : subtitleComponents.joined(separator: ", ")
+        
+        mapView.addAnnotation(annotation)
+        
+        // Animar hacia la ubicación encontrada
+        let region = MKCoordinateRegion(center: coordinate, latitudinalMeters: 5000, longitudinalMeters: 5000)
+        mapView.setRegion(region, animated: true)
+        
+        // Opcional: Actualizar el campo de dirección con la dirección formateada
+        if let formattedAddress = placemark.name {
+            addressField.text = formattedAddress
         }
     }
 
@@ -108,5 +194,23 @@ class AddPersonViewController: UIViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+}
+
+// MARK: - UITextFieldDelegate
+extension AddPersonViewController: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        if textField == addressField {
+            textField.resignFirstResponder()
+            geocodeAddress()
+            return false
+        }
+        return true
+    }
+    
+    func textFieldDidEndEditing(_ textField: UITextField) {
+        if textField == addressField {
+            geocodeAddress()
+        }
     }
 }
