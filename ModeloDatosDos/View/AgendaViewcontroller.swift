@@ -23,6 +23,7 @@ final class AgendaViewcontroller: UITableViewController {
             self?.fetchPersons()
         }
         navigationController?.pushViewController(vc, animated: true)
+//        navigationController?.present(vc, animated: true)
     }
 
     func fetchPersons() {
