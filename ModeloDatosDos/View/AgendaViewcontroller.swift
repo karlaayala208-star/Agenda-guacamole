@@ -1,19 +1,43 @@
 import UIKit
 import CoreData
 
-class viewcontroller: UITableViewController {
-    //TODO aqui hace algo
-    var alumnos: [Alumno] = []
-    
+final class AgendaViewcontroller: UITableViewController {
+    /// variable que almacena las persona a mostrar en la agenda
+    var persons: [Person] = []
+
     // Obtener contexto desde AppDelegate (plantilla UIKit + Core Data)
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = "Alumnos"
-        cargarAlumnos()
+        title = "Agenda"
+        navigationItem.rightBarButtonItem = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addPerson))
+//        cargarAlumnos()
+        fetchPersons()
     }
-    
+
+    @objc func addPerson() {
+        let storyboard = UIStoryboard(name: "Main", bundle: nil)
+        let vc = storyboard.instantiateViewController(withIdentifier: "AddPersonViewController") as! AddPersonViewController
+        vc.onSave = { [weak self] in
+            self?.fetchPersons()
+        }
+
+        //TODO: review what is the better approach, push or present
+        navigationController?.pushViewController(vc, animated: true)
+//        navigationController?.present(vc, animated: true)
+    }
+
+    func fetchPersons() {
+        let request: NSFetchRequest<Person> = Person.fetchRequest()
+        do {
+            persons = try context.fetch(request)
+            tableView.reloadData()
+        } catch {
+            print("Error fetching persons: \(error)")
+        }
+    }
+
     // MARK: - Acción del botón + (conectar en Storyboard)
     @IBAction func agregarAlumno(_ sender: UIBarButtonItem) {
         let alert = UIAlertController(
@@ -44,15 +68,15 @@ class viewcontroller: UITableViewController {
             }
             
             // Crear alumno
-            let nuevoAlumno = Alumno(context: self.context)
+            let nuevoAlumno = Person(context: self.context)
             nuevoAlumno.nombre = nombre
             nuevoAlumno.edad = edad
             
-            // Crear curso
-            let nuevoCurso = Curso(context: self.context)
+//            // Crear curso
+            let nuevoCurso = Hobbie(context: self.context)
             nuevoCurso.setValue(cursoNombre, forKey: "nombre")
-            nuevoCurso.setValue(creditos, forKey: "creditos")
-            
+            nuevoCurso.setValue(UUID(), forKey: "creditos")
+
             // Relación con KVC
             let alumnosSet = nuevoCurso.mutableSetValue(forKey: "alumnos")
             alumnosSet.add(nuevoAlumno)
@@ -72,9 +96,9 @@ class viewcontroller: UITableViewController {
     
     // MARK: - Cargar datos
     func cargarAlumnos() {
-        let request: NSFetchRequest<Alumno> = Alumno.fetchRequest()
+        let request: NSFetchRequest<Person> = Person.fetchRequest()
         do {
-            alumnos = try context.fetch(request)
+            persons = try context.fetch(request)
             tableView.reloadData()
         } catch {
             print("Error al cargar alumnos: \(error)")
@@ -83,23 +107,23 @@ class viewcontroller: UITableViewController {
     
     // MARK: - TableView
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        return alumnos.count
+        return persons.count
     }
     
     override func tableView(_ tableView: UITableView,
                             cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "AlumnoCell", for: indexPath)
-        let alumno = alumnos[indexPath.row]
+        let alumno = persons[indexPath.row]
         
         var cursoNombre = "Sin curso"
         var creditosTexto = ""
         
-        if let curso = alumno.value(forKey: "curso") as? Curso {
-            cursoNombre = curso.value(forKey: "nombre") as? String ?? "Sin curso"
-            if let c = curso.value(forKey: "creditos") as? Int16 {
-                creditosTexto = " - Créditos: \(c)"
-            }
-        }
+//        if let curso = alumno.value(forKey: "curso") as? Curso {
+//            cursoNombre = curso.value(forKey: "nombre") as? String ?? "Sin curso"
+//            if let c = curso.value(forKey: "creditos") as? Int16 {
+//                creditosTexto = " - Créditos: \(c)"
+//            }
+//        }
         
         cell.textLabel?.text = alumno.nombre
         cell.detailTextLabel?.text = "Edad: \(alumno.edad) | Curso: \(cursoNombre)\(creditosTexto)"
@@ -111,11 +135,11 @@ class viewcontroller: UITableViewController {
                             commit editingStyle: UITableViewCell.EditingStyle,
                             forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            let alumno = alumnos[indexPath.row]
+            let alumno = persons[indexPath.row]
             context.delete(alumno)
             do {
                 try context.save()
-                alumnos.remove(at: indexPath.row)
+                persons.remove(at: indexPath.row)
                 tableView.deleteRows(at: [indexPath], with: .fade)
             } catch {
                 print("Error al eliminar: \(error)")
