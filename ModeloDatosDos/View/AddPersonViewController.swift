@@ -10,6 +10,7 @@ class AddPersonViewController: UIViewController {
     @IBOutlet weak var ageField: UITextField!
     @IBOutlet weak var hobbiesField: UITextField!
     @IBOutlet weak var mapView: MKMapView!
+    @IBOutlet weak var saveButton: UIButton!
 
     var onSave: (() -> Void)?
     let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
@@ -46,12 +47,84 @@ class AddPersonViewController: UIViewController {
     }
     
     private func setupTextFields() {
-        // Configurar el delegate para el campo de dirección
+        // Configurar delegates para todos los campos
+        nameField.delegate = self
+        phoneField.delegate = self
         addressField.delegate = self
+        ageField.delegate = self
+        hobbiesField.delegate = self
         
-        // Agregar target para cuando se termine de editar la dirección
+        // Agregar targets para validación en tiempo real
+        nameField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        phoneField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        addressField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        ageField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        hobbiesField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
+        
+        // Configurar targets específicos para dirección
         addressField.addTarget(self, action: #selector(addressFieldDidEndEditing), for: .editingDidEnd)
         addressField.addTarget(self, action: #selector(addressFieldDidChange), for: .editingChanged)
+        
+        // Configurar botón inicialmente deshabilitado
+        setupSaveButton()
+        validateForm()
+    }
+    
+    private func setupSaveButton() {
+        saveButton.layer.cornerRadius = 8
+        saveButton.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
+        updateSaveButtonState(isEnabled: false)
+    }
+    
+    private func updateSaveButtonState(isEnabled: Bool) {
+        saveButton.isEnabled = isEnabled
+        if isEnabled {
+            saveButton.backgroundColor = UIColor.systemBlue
+            saveButton.setTitleColor(.white, for: .normal)
+            saveButton.alpha = 1.0
+        } else {
+            saveButton.backgroundColor = UIColor.systemGray4
+            saveButton.setTitleColor(.systemGray2, for: .normal)
+            saveButton.alpha = 0.6
+        }
+    }
+    
+    @objc private func textFieldDidChange() {
+        validateForm()
+        
+        // Cancelar geocoding si está escribiendo en dirección
+        if addressField.isFirstResponder {
+            geocoder.cancelGeocode()
+        }
+    }
+    
+    private func validateForm() {
+        let isValid = isFormValid()
+        updateSaveButtonState(isEnabled: isValid)
+    }
+    
+    private func isFormValid() -> Bool {
+        // Campos requeridos: nombre, teléfono, dirección y edad
+        guard let name = nameField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !name.isEmpty,
+              name.count >= 2 else { return false }
+        
+        guard let phone = phoneField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !phone.isEmpty,
+              phone.count >= 8 else { return false }
+        
+        guard let address = addressField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !address.isEmpty,
+              address.count >= 5 else { return false }
+        
+        guard let ageText = ageField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !ageText.isEmpty,
+              let age = Int(ageText),
+              age > 0 && age <= 120 else { return false }
+        
+        // Hobbies es opcional, no se valida
+        
+        return true
     }
 
     private func addGestureRecognizerToMapView() {
@@ -161,6 +234,12 @@ class AddPersonViewController: UIViewController {
     }
 
     @IBAction func saveTapped(_ sender: Any) {
+        // Verificar validación del formulario
+        guard isFormValid() else {
+            showValidationAlert()
+            return
+        }
+        
         // Verificar que hay un usuario logueado
         guard let currentUsername = UserManager.shared.getCurrentUsername() else {
             showAlert(title: "Error", message: "No hay un usuario logueado. Por favor, inicia sesión.")
@@ -169,11 +248,11 @@ class AddPersonViewController: UIViewController {
         
         let person = Person(context: context)
         person.id = UUID()
-        person.nombre = nameField.text ?? ""
-        person.telefono = phoneField.text ?? ""
-        person.ubicacion = addressField.text ?? ""
-        person.edad = Int16(ageField.text ?? "0") ?? 0
-        person.hobie = hobbiesField.text ?? ""
+        person.nombre = nameField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        person.telefono = phoneField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        person.ubicacion = addressField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        person.edad = Int16(ageField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "0") ?? 0
+        person.hobie = hobbiesField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         person.ownerUsername = currentUsername // Asignar el usuario propietario
 
         // Coordenadas
@@ -190,6 +269,28 @@ class AddPersonViewController: UIViewController {
         }
     }
     
+    private func showValidationAlert() {
+        var message = "Por favor, completa los siguientes campos correctamente:\n\n"
+        
+        if let name = nameField.text?.trimmingCharacters(in: .whitespacesAndNewlines), name.isEmpty || name.count < 2 {
+            message += "• Nombre (mínimo 2 caracteres)\n"
+        }
+        
+        if let phone = phoneField.text?.trimmingCharacters(in: .whitespacesAndNewlines), phone.isEmpty || phone.count < 8 {
+            message += "• Teléfono (mínimo 8 dígitos)\n"
+        }
+        
+        if let address = addressField.text?.trimmingCharacters(in: .whitespacesAndNewlines), address.isEmpty || address.count < 5 {
+            message += "• Dirección (mínimo 5 caracteres)\n"
+        }
+        
+        if let ageText = ageField.text?.trimmingCharacters(in: .whitespacesAndNewlines), ageText.isEmpty || Int(ageText) == nil || Int(ageText)! <= 0 || Int(ageText)! > 120 {
+            message += "• Edad (entre 1 y 120 años)\n"
+        }
+        
+        showAlert(title: "Formulario incompleto", message: message)
+    }
+    
     private func showAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
@@ -200,17 +301,48 @@ class AddPersonViewController: UIViewController {
 // MARK: - UITextFieldDelegate
 extension AddPersonViewController: UITextFieldDelegate {
     func textFieldShouldReturn(_ textField: UITextField) -> Bool {
-        if textField == addressField {
+        // Mover al siguiente campo o cerrar teclado
+        switch textField {
+        case nameField:
+            phoneField.becomeFirstResponder()
+        case phoneField:
+            addressField.becomeFirstResponder()
+        case addressField:
             textField.resignFirstResponder()
             geocodeAddress()
-            return false
+        case ageField:
+            hobbiesField.becomeFirstResponder()
+        case hobbiesField:
+            textField.resignFirstResponder()
+        default:
+            textField.resignFirstResponder()
         }
-        return true
+        return false
     }
     
     func textFieldDidEndEditing(_ textField: UITextField) {
         if textField == addressField {
             geocodeAddress()
         }
+        validateForm() // Validar cuando termine de editar cualquier campo
+    }
+    
+    func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
+        // Validaciones específicas por campo
+        if textField == ageField {
+            // Solo permitir números en el campo edad
+            let allowedCharacters = CharacterSet.decimalDigits
+            let characterSet = CharacterSet(charactersIn: string)
+            return allowedCharacters.isSuperset(of: characterSet)
+        }
+        
+        if textField == phoneField {
+            // Permitir números, espacios, guiones y paréntesis para teléfono
+            let allowedCharacters = CharacterSet(charactersIn: "0123456789 ()-+")
+            let characterSet = CharacterSet(charactersIn: string)
+            return allowedCharacters.isSuperset(of: characterSet)
+        }
+        
+        return true
     }
 }

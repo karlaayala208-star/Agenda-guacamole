@@ -490,6 +490,7 @@
                         <outlet property="mapView" destination="szV-sB-aeN" id="vih-82-JTC"/>
                         <outlet property="nameField" destination="Cc0-F3-sya" id="yu5-78-Adf"/>
                         <outlet property="phoneField" destination="uLG-kz-dDQ" id="rRH-3E-VCF"/>
+                        <outlet property="saveButton" destination="Bz6-3r-hUv" id="saveButtonOutlet"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="ugC-ee-FkC" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
