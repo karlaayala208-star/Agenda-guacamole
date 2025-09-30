@@ -16,6 +16,14 @@ class RegisterViewController: UIViewController {
         super.viewDidLoad()
         setupUI()
         setupNavigationBar()
+        setupKeyboardHandling()
+        setupTextFieldDelegates()
+        setupKeyboardObservers()
+    }
+    
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        removeKeyboardObservers()
     }
     
     // MARK: - UI Setup
@@ -25,15 +33,24 @@ class RegisterViewController: UIViewController {
         
         // Configurar campos de texto
         setupTextField(nameField, placeholder: "Nombre completo")
+        nameField.returnKeyType = .next
+        
         setupTextField(emailField, placeholder: "Correo electrónico")
         emailField.keyboardType = .emailAddress
+        emailField.returnKeyType = .next
         
         setupTextField(usernameField, placeholder: "Nombre de usuario")
+        usernameField.returnKeyType = .next
+        
         setupTextField(passwordField, placeholder: "Contraseña", isSecure: true)
+        passwordField.returnKeyType = .next
+        
         setupTextField(confirmPasswordField, placeholder: "Confirmar contraseña", isSecure: true)
+        confirmPasswordField.returnKeyType = .next
         
         setupTextField(phoneField, placeholder: "Teléfono (opcional)")
         phoneField.keyboardType = .phonePad
+        setupPhoneFieldToolbar()
         
         // Configurar botones
         registerButton.backgroundColor = UIColor.systemGreen
@@ -62,6 +79,118 @@ class RegisterViewController: UIViewController {
             target: self,
             action: #selector(cancelTapped)
         )
+    }
+    
+    private func setupKeyboardHandling() {
+        // Agregar tap gesture para ocultar el teclado
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(dismissKeyboard))
+        tapGesture.cancelsTouchesInView = false
+        view.addGestureRecognizer(tapGesture)
+    }
+    
+    private func setupPhoneFieldToolbar() {
+        // Crear toolbar para el campo de teléfono
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        
+        // Crear botón flexible para empujar el botón Done a la derecha
+        let flexibleSpace = UIBarButtonItem(barButtonSystemItem: .flexibleSpace, target: nil, action: nil)
+        
+        // Crear botón Done
+        let doneButton = UIBarButtonItem(barButtonSystemItem: .done, target: self, action: #selector(dismissKeyboard))
+        
+        // Agregar botones al toolbar
+        toolbar.items = [flexibleSpace, doneButton]
+        
+        // Asignar toolbar al campo de teléfono
+        phoneField.inputAccessoryView = toolbar
+    }
+    
+    private func setupTextFieldDelegates() {
+        nameField.delegate = self
+        emailField.delegate = self
+        usernameField.delegate = self
+        passwordField.delegate = self
+        confirmPasswordField.delegate = self
+        phoneField.delegate = self
+    }
+    
+    private func setupKeyboardObservers() {
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(keyboardWillShow),
+            name: UIResponder.keyboardWillShowNotification,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(keyboardWillHide),
+            name: UIResponder.keyboardWillHideNotification,
+            object: nil
+        )
+    }
+    
+    private func removeKeyboardObservers() {
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillShowNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+    
+    @objc private func keyboardWillShow(notification: NSNotification) {
+        guard let keyboardFrame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? NSValue else { return }
+        let keyboardHeight = keyboardFrame.cgRectValue.height
+        
+        // Ajustar el contenido para que no se oculte detrás del teclado
+        let contentInsets = UIEdgeInsets(top: 0, left: 0, bottom: keyboardHeight, right: 0)
+        
+        if let scrollView = view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+            scrollView.contentInset = contentInsets
+            scrollView.scrollIndicatorInsets = contentInsets
+            
+            // Hacer scroll hacia el campo activo si está oculto
+            if let activeField = view.subviews.first(where: { $0.isFirstResponder }) {
+                let rect = activeField.frame
+                scrollView.scrollRectToVisible(rect, animated: true)
+            }
+        } else {
+            // Si no hay scroll view, mover la vista hacia arriba
+            let visibleHeight = view.frame.height - keyboardHeight
+            let activeFieldBottom = getActiveFieldMaxY()
+            
+            if activeFieldBottom > visibleHeight {
+                let offset = activeFieldBottom - visibleHeight + 20 // 20 puntos de margen
+                UIView.animate(withDuration: 0.3) {
+                    self.view.frame.origin.y = -offset
+                }
+            }
+        }
+    }
+    
+    @objc private func keyboardWillHide(notification: NSNotification) {
+        if let scrollView = view.subviews.first(where: { $0 is UIScrollView }) as? UIScrollView {
+            scrollView.contentInset = .zero
+            scrollView.scrollIndicatorInsets = .zero
+        } else {
+            UIView.animate(withDuration: 0.3) {
+                self.view.frame.origin.y = 0
+            }
+        }
+    }
+    
+    private func getActiveFieldMaxY() -> CGFloat {
+        let textFields = [nameField, emailField, usernameField, passwordField, confirmPasswordField, phoneField]
+        
+        for field in textFields {
+            if field?.isFirstResponder == true {
+                return field?.frame.maxY ?? 0
+            }
+        }
+        
+        return 0
+    }
+    
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
     }
     
     // MARK: - Actions
@@ -160,5 +289,28 @@ class RegisterViewController: UIViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+}
+
+// MARK: - UITextFieldDelegate
+extension RegisterViewController: UITextFieldDelegate {
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        switch textField {
+        case nameField:
+            emailField.becomeFirstResponder()
+        case emailField:
+            usernameField.becomeFirstResponder()
+        case usernameField:
+            passwordField.becomeFirstResponder()
+        case passwordField:
+            confirmPasswordField.becomeFirstResponder()
+        case confirmPasswordField:
+            phoneField.becomeFirstResponder()
+        case phoneField:
+            phoneField.resignFirstResponder()
+        default:
+            textField.resignFirstResponder()
+        }
+        return true
     }
 }
