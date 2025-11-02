@@ -175,6 +175,32 @@ class UserManager {
             }
     }
     
+    func validateCredentialsByEmail(email: String, password: String, completion: @escaping (Bool) -> Void) {
+        let lowercaseEmail = email.lowercased()
+        
+        db.collection(usersCollection)
+            .whereField("email", isEqualTo: lowercaseEmail)
+            .getDocuments { querySnapshot, error in
+                if let error = error {
+                    print("Error validando credenciales por email: \(error.localizedDescription)")
+                    if error.localizedDescription.contains("permissions") {
+                        print("⚠️ Error de permisos en Firestore. Verifica las reglas de seguridad.")
+                    }
+                    completion(false)
+                    return
+                }
+                
+                guard let documents = querySnapshot?.documents, !documents.isEmpty,
+                      let data = documents.first?.data(),
+                      let storedPassword = data["password"] as? String else {
+                    completion(false)
+                    return
+                }
+                
+                completion(storedPassword == password)
+            }
+    }
+    
     func getUser(by username: String, completion: @escaping (User?) -> Void) {
         let lowercaseUsername = username.lowercased()
         
@@ -183,6 +209,28 @@ class UserManager {
             .getDocuments { querySnapshot, error in
                 if let error = error {
                     print("Error obteniendo usuario: \(error.localizedDescription)")
+                    completion(nil)
+                    return
+                }
+                
+                guard let documents = querySnapshot?.documents, !documents.isEmpty,
+                      let data = documents.first?.data() else {
+                    completion(nil)
+                    return
+                }
+                
+            completion(User(from: data))
+        }
+    }
+    
+    func getUser(by email: String, byEmail: Bool, completion: @escaping (User?) -> Void) {
+        let lowercaseEmail = email.lowercased()
+        
+        db.collection(usersCollection)
+            .whereField("email", isEqualTo: lowercaseEmail)
+            .getDocuments { querySnapshot, error in
+                if let error = error {
+                    print("Error obteniendo usuario por email: \(error.localizedDescription)")
                     completion(nil)
                     return
                 }
@@ -220,7 +268,19 @@ class UserManager {
         UserDefaults.standard.synchronize()
     }
     
+    func setCurrentUserByEmail(_ email: String) {
+        UserDefaults.standard.set(email.lowercased(), forKey: "currentUserEmail")
+        UserDefaults.standard.synchronize()
+    }
+    
     func getCurrentUser(completion: @escaping (User?) -> Void) {
+        // Primero verificar si hay un usuario logueado por email
+        if let currentEmail = UserDefaults.standard.string(forKey: "currentUserEmail") {
+            getUser(by: currentEmail, byEmail: true, completion: completion)
+            return
+        }
+        
+        // Si no hay email, verificar por username (retrocompatibilidad)
         guard let currentUsername = getCurrentUsername() else {
             completion(nil)
             return
@@ -235,11 +295,12 @@ class UserManager {
     
     func logout() {
         UserDefaults.standard.removeObject(forKey: currentUserKey)
+        UserDefaults.standard.removeObject(forKey: "currentUserEmail")
         UserDefaults.standard.synchronize()
     }
     
     func isUserLoggedIn() -> Bool {
-        return getCurrentUsername() != nil
+        return getCurrentUsername() != nil || UserDefaults.standard.string(forKey: "currentUserEmail") != nil
     }
     
     // MARK: - Debug Methods

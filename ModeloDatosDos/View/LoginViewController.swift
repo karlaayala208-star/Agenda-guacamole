@@ -3,7 +3,7 @@ import UIKit
 class LoginViewController: UIViewController {
     
     // MARK: - Outlets
-    @IBOutlet weak var usernameField: UITextField!
+    @IBOutlet weak var emailField: UITextField!
     @IBOutlet weak var passwordField: UITextField!
     @IBOutlet weak var loginButton: UIButton!
     @IBOutlet weak var registerButton: UIButton!
@@ -22,10 +22,11 @@ class LoginViewController: UIViewController {
         title = "Iniciar Sesión"
         
         // Configurar campos de texto
-        usernameField.borderStyle = .roundedRect
-        usernameField.placeholder = "Usuario"
-        usernameField.autocapitalizationType = .none
-        usernameField.autocorrectionType = .no
+        emailField.borderStyle = .roundedRect
+        emailField.placeholder = "Email"
+        emailField.autocapitalizationType = .none
+        emailField.autocorrectionType = .no
+        emailField.keyboardType = .emailAddress
         
         passwordField.borderStyle = .roundedRect
         passwordField.placeholder = "Contraseña"
@@ -47,7 +48,7 @@ class LoginViewController: UIViewController {
     
     // MARK: - Actions
     @IBAction func loginTapped(_ sender: UIButton) {
-        guard let username = usernameField.text, !username.isEmpty,
+        guard let email = emailField.text, !email.isEmpty,
               let password = passwordField.text, !password.isEmpty else {
             showAlert(title: "Error", message: "Por favor, completa todos los campos")
             return
@@ -57,20 +58,20 @@ class LoginViewController: UIViewController {
         loginButton.isEnabled = false
         loginButton.setTitle("Iniciando sesión...", for: .normal)
         
-        // Validación con Firestore (asíncrona)
-        validateCredentials(username: username, password: password) { [weak self] isValid in
+        // Validación con Firestore por email (asíncrona)
+        validateCredentialsByEmail(email: email, password: password) { [weak self] isValid in
             DispatchQueue.main.async {
                 self?.loginButton.isEnabled = true
                 self?.loginButton.setTitle("Iniciar Sesión", for: .normal)
                 
                 if isValid {
-                    // Guardar el usuario actual para uso en la app
-                    UserManager.shared.setCurrentUser(username)
+                    // Guardar el usuario actual por email para uso en la app
+                    UserManager.shared.setCurrentUserByEmail(email)
                     
                     // Login exitoso - navegar a la agenda
                     self?.navigateToAgenda()
                 } else {
-                    self?.showAlert(title: "Error de autenticación", message: "Usuario o contraseña incorrectos")
+                    self?.showAlert(title: "Error de autenticación", message: "Email o contraseña incorrectos")
                 }
             }
         }
@@ -87,8 +88,8 @@ class LoginViewController: UIViewController {
     }
     
     // MARK: - Helper Methods
-    private func validateCredentials(username: String, password: String, completion: @escaping (Bool) -> Void) {
-        UserManager.shared.validateCredentials(username: username, password: password, completion: completion)
+    private func validateCredentialsByEmail(email: String, password: String, completion: @escaping (Bool) -> Void) {
+        UserManager.shared.validateCredentialsByEmail(email: email, password: password, completion: completion)
     }
     
     private func navigateToAgenda() {
