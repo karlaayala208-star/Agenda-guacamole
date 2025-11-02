@@ -1,5 +1,4 @@
 import UIKit
-import CoreData
 
 final class AgendaViewcontroller: UITableViewController {
     
@@ -9,15 +8,12 @@ final class AgendaViewcontroller: UITableViewController {
     @IBOutlet weak var userNameLabel: UILabel!
     @IBOutlet weak var userEmailLabel: UILabel!
     
-    /// variable que almacena las persona a mostrar en la agenda
-    var persons: [Person] = []
-    /// Diccionario para organizar personas por letra inicial
-    var personsByLetter: [String: [Person]] = [:]
+    /// variable que almacena los contactos a mostrar en la agenda
+    var contacts: [Contact] = []
+    /// Diccionario para organizar contactos por letra inicial
+    var contactsByLetter: [String: [Contact]] = [:]
     /// Array con las letras ordenadas para las secciones
     var sortedLetters: [String] = []
-
-    // Obtener contexto desde AppDelegate (plantilla UIKit + Core Data)
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -31,11 +27,7 @@ final class AgendaViewcontroller: UITableViewController {
         
         setupProfileSection()
         setupNavigationBar()
-        
-        // Debug: Agregar botón temporal para mostrar todos los contactos
-        addDebugButton()
-        
-        fetchPersons()
+        fetchContacts()
     }
     
     private func addDebugButton() {
@@ -48,34 +40,49 @@ final class AgendaViewcontroller: UITableViewController {
     }
     
     @objc private func showAllContacts() {
-        let alert = UIAlertController(title: "Debug", message: "¿Mostrar todos los contactos sin filtrar?", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "Sí", style: .default) { [weak self] _ in
-            self?.fetchAllPersons()
+        let alert = UIAlertController(title: "Debug", message: "Información de contactos en Firestore", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Mostrar info", style: .default) { [weak self] _ in
+            self?.showDebugInfo()
         })
-        alert.addAction(UIAlertAction(title: "No", style: .cancel))
+        alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
         present(alert, animated: true)
     }
     
-    private func fetchAllPersons() {
-        let request: NSFetchRequest<Person> = Person.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(key: "nombre", ascending: true)]
-        
-        do {
-            persons = try context.fetch(request)
-            print("📊 TODOS los contactos mostrados: \(persons.count)")
-            organizePersonsByLetter()
-            tableView.reloadData()
-        } catch {
-            print("❌ Error fetching all persons: \(error)")
+    private func showDebugInfo() {
+        print("📊 Contactos actuales: \(contacts.count)")
+        for contact in contacts {
+            print("  - \(contact.nombre)")
         }
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         // Recargar datos cuando regresamos a esta pantalla
-        fetchPersons()
+        fetchContacts()
         // Actualizar información del perfil
         loadUserProfile()
+    }
+    
+    func fetchContacts() {
+        ContactManager.shared.getContacts { [weak self] result in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                switch result {
+                case .success(let fetchedContacts):
+                    self.contacts = fetchedContacts
+                    print("📊 Contactos obtenidos de Firestore: \(fetchedContacts.count)")
+                    self.organizeContactsByLetter()
+                    self.tableView.reloadData()
+                    
+                case .failure(let error):
+                    print("❌ Error obteniendo contactos: \(error)")
+                    self.showAlert(title: "Error", message: "No se pudieron cargar los contactos.")
+                    self.contacts = []
+                    self.tableView.reloadData()
+                }
+            }
+        }
     }
     
     private func setupProfileSection() {
@@ -190,164 +197,25 @@ final class AgendaViewcontroller: UITableViewController {
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
         let vc = storyboard.instantiateViewController(withIdentifier: "AddPersonViewController") as! AddPersonViewController
         vc.onSave = { [weak self] in
-            self?.fetchPersons()
+            self?.fetchContacts()
         }
         navigationController?.pushViewController(vc, animated: true)
     }
 
-    func fetchPersons() {
-        // Intentar obtener el usuario actual
-        var currentUserIdentifier: String?
+    // Organizar contactos por letra inicial
+    private func organizeContactsByLetter() {
+        contactsByLetter.removeAll()
         
-        // Primero intentar obtener el email del usuario actual
-        if let currentEmail = UserDefaults.standard.string(forKey: "currentUserEmail") {
-            currentUserIdentifier = currentEmail
-            print("🔍 Usuario logueado por EMAIL: \(currentEmail)")
-        } else if let currentUsername = UserManager.shared.getCurrentUsername() {
-            currentUserIdentifier = currentUsername
-            print("🔍 Usuario logueado por USERNAME: \(currentUsername)")
-        }
-        
-        guard let userIdentifier = currentUserIdentifier else {
-            print("❌ No hay usuario logueado")
-            persons = []
-            tableView.reloadData()
-            return
-        }
-        
-        // Primero, migrar datos existentes sin propietario
-        migrateExistingPersonsIfNeeded()
-        
-        // Migrar contactos del username al email si es necesario
-        migratePersonsFromUsernameToEmail(currentIdentifier: userIdentifier)
-        
-        let request: NSFetchRequest<Person> = Person.fetchRequest()
-        
-        // Filtrar solo las personas del usuario actual (compatibilidad con email y username)
-        request.predicate = NSPredicate(format: "ownerUsername == %@", userIdentifier)
-        
-        // Ordenar alfabéticamente por nombre
-        request.sortDescriptors = [NSSortDescriptor(key: "nombre", ascending: true)]
-        
-        do {
-            persons = try context.fetch(request)
-            print("📊 Contactos encontrados para '\(userIdentifier)': \(persons.count)")
-            
-            // Debug: Mostrar todos los contactos en la base de datos
-            debugAllPersons()
-            
-            organizePersonsByLetter()
-            tableView.reloadData()
-        } catch {
-            print("❌ Error fetching persons: \(error)")
-        }
-    }
-    
-    // MARK: - Debug Methods
-    private func debugAllPersons() {
-        let allRequest: NSFetchRequest<Person> = Person.fetchRequest()
-        do {
-            let allPersons = try context.fetch(allRequest)
-            print("🗃️ TODOS los contactos en la base de datos:")
-            for person in allPersons {
-                print("  - \(person.nombre ?? "Sin nombre") -> Owner: '\(person.ownerUsername ?? "nil")'")
+        for contact in contacts {
+            let firstLetter = getFirstLetter(from: contact.nombre)
+            if contactsByLetter[firstLetter] == nil {
+                contactsByLetter[firstLetter] = []
             }
-        } catch {
-            print("❌ Error debugging persons: \(error)")
-        }
-    }
-    
-    // Organizar personas por letra inicial
-    private func organizePersonsByLetter() {
-        personsByLetter.removeAll()
-        
-        for person in persons {
-            let firstLetter = getFirstLetter(from: person.nombre ?? "")
-            if personsByLetter[firstLetter] == nil {
-                personsByLetter[firstLetter] = []
-            }
-            personsByLetter[firstLetter]?.append(person)
+            contactsByLetter[firstLetter]?.append(contact)
         }
         
         // Ordenar las letras alfabéticamente
-        sortedLetters = personsByLetter.keys.sorted()
-    }
-    
-    private func migrateExistingPersonsIfNeeded() {
-        // Solo ejecutar una vez
-        let migrationKey = "PersonOwnerMigrationCompleted"
-        guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
-        
-        let request: NSFetchRequest<Person> = Person.fetchRequest()
-        request.predicate = NSPredicate(format: "ownerUsername == nil OR ownerUsername == ''")
-        
-        do {
-            let personsWithoutOwner = try context.fetch(request)
-            if !personsWithoutOwner.isEmpty {
-                // Obtener el identificador del usuario actual (email o username)
-                var defaultOwner = "admin"
-                if let currentEmail = UserDefaults.standard.string(forKey: "currentUserEmail") {
-                    defaultOwner = currentEmail
-                } else if let currentUsername = UserManager.shared.getCurrentUsername() {
-                    defaultOwner = currentUsername
-                }
-                
-                for person in personsWithoutOwner {
-                    person.ownerUsername = defaultOwner
-                }
-                
-                try context.save()
-                print("Migradas \(personsWithoutOwner.count) personas al usuario: \(defaultOwner)")
-            }
-            
-            UserDefaults.standard.set(true, forKey: migrationKey)
-            UserDefaults.standard.synchronize()
-        } catch {
-            print("❌ Error en migración: \(error)")
-        }
-    }
-    
-    private func migratePersonsFromUsernameToEmail(currentIdentifier: String) {
-        // Solo migrar si el usuario actual está logueado por email
-        guard currentIdentifier.contains("@") else { return }
-        
-        // Obtener el usuario actual para obtener su username
-        UserManager.shared.getCurrentUser { [weak self] user in
-            guard let self = self,
-                  let user = user else { return }
-
-            let username = user.username
-            
-            DispatchQueue.main.async {
-                let migrationKey = "PersonEmailMigrationCompleted_\(user.email)"
-                guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
-                
-                let request: NSFetchRequest<Person> = Person.fetchRequest()
-                request.predicate = NSPredicate(format: "ownerUsername == %@", username.lowercased())
-                
-                do {
-                    let personsWithUsername = try self.context.fetch(request)
-                    if !personsWithUsername.isEmpty {
-                        print("🔄 Migrando \(personsWithUsername.count) contactos de username '\(username)' a email '\(user.email)'")
-                        
-                        for person in personsWithUsername {
-                            person.ownerUsername = user.email.lowercased()
-                        }
-                        
-                        try self.context.save()
-                        print("✅ Migración completada exitosamente")
-                        
-                        // Recargar los contactos después de la migración
-                        self.fetchPersons()
-                    }
-                    
-                    UserDefaults.standard.set(true, forKey: migrationKey)
-                    UserDefaults.standard.synchronize()
-                } catch {
-                    print("❌ Error en migración de username a email: \(error)")
-                }
-            }
-        }
+        sortedLetters = contactsByLetter.keys.sorted()
     }
     
     @objc func logoutTapped() {
@@ -391,7 +259,7 @@ final class AgendaViewcontroller: UITableViewController {
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
         let letter = sortedLetters[section]
-        return personsByLetter[letter]?.count ?? 0
+        return contactsByLetter[letter]?.count ?? 0
     }
     
     override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
@@ -406,17 +274,17 @@ final class AgendaViewcontroller: UITableViewController {
                             cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "AlumnoCell", for: indexPath)
         
-        // Obtener la persona de la sección y fila correspondiente
+        // Obtener el contacto de la sección y fila correspondiente
         let letter = sortedLetters[indexPath.section]
-        guard let personsInSection = personsByLetter[letter],
-              indexPath.row < personsInSection.count else {
+        guard let contactsInSection = contactsByLetter[letter],
+              indexPath.row < contactsInSection.count else {
             return cell
         }
         
-        let person = personsInSection[indexPath.row]
+        let contact = contactsInSection[indexPath.row]
         
         // Mostrar solo el nombre del contacto
-        cell.textLabel?.text = person.nombre ?? "Sin nombre"
+        cell.textLabel?.text = contact.nombre
         
         // Limpiar el detailTextLabel para que no muestre información adicional
         cell.detailTextLabel?.text = nil
@@ -437,16 +305,16 @@ final class AgendaViewcontroller: UITableViewController {
     // MARK: - Swipe Actions
     override func tableView(_ tableView: UITableView, trailingSwipeActionsConfigurationForRowAt indexPath: IndexPath) -> UISwipeActionsConfiguration? {
         let letter = sortedLetters[indexPath.section]
-        guard let personsInSection = personsByLetter[letter],
-              indexPath.row < personsInSection.count else {
+        guard let contactsInSection = contactsByLetter[letter],
+              indexPath.row < contactsInSection.count else {
             return nil
         }
         
-        let person = personsInSection[indexPath.row]
+        let contact = contactsInSection[indexPath.row]
         
         // Acción de eliminar
         let deleteAction = UIContextualAction(style: .destructive, title: "Eliminar") { [weak self] (action, view, completionHandler) in
-            self?.deletePerson(person, at: indexPath)
+            self?.deleteContact(contact, at: indexPath)
             completionHandler(true)
         }
         deleteAction.backgroundColor = .systemRed
@@ -454,7 +322,7 @@ final class AgendaViewcontroller: UITableViewController {
         
         // Acción de editar
         let editAction = UIContextualAction(style: .normal, title: "Editar") { [weak self] (action, view, completionHandler) in
-            self?.editPerson(person)
+            self?.editContact(contact)
             completionHandler(true)
         }
         editAction.backgroundColor = .systemBlue
@@ -466,44 +334,48 @@ final class AgendaViewcontroller: UITableViewController {
         return configuration
     }
     
-    // Método para eliminar persona
-    private func deletePerson(_ person: Person, at indexPath: IndexPath) {
+    // Método para eliminar contacto
+    private func deleteContact(_ contact: Contact, at indexPath: IndexPath) {
         let alert = UIAlertController(
             title: "Eliminar contacto",
-            message: "¿Estás seguro de que quieres eliminar a \(person.nombre ?? "esta persona")?",
+            message: "¿Estás seguro de que quieres eliminar a \(contact.nombre)?",
             preferredStyle: .alert
         )
         
         alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
         alert.addAction(UIAlertAction(title: "Eliminar", style: .destructive) { [weak self] _ in
-            self?.performDelete(person)
+            self?.performDeleteContact(contact)
         })
         
         present(alert, animated: true)
     }
     
-    private func performDelete(_ person: Person) {
-        context.delete(person)
-        
-        do {
-            try context.save()
-            fetchPersons() // Recargar datos después de eliminar
-        } catch {
-            print("Error al eliminar: \(error)")
-            showAlert(title: "Error", message: "No se pudo eliminar el contacto. Inténtalo de nuevo.")
+    private func performDeleteContact(_ contact: Contact) {
+        ContactManager.shared.deleteContact(contact) { [weak self] result in
+            DispatchQueue.main.async {
+                switch result {
+                case .success:
+                    print("✅ Contacto eliminado exitosamente")
+                    self?.fetchContacts() // Recargar datos después de eliminar
+                    
+                case .failure(let error):
+                    print("❌ Error al eliminar contacto: \(error)")
+                    self?.showAlert(title: "Error", message: "No se pudo eliminar el contacto. Inténtalo de nuevo.")
+                }
+            }
         }
     }
     
-    // Método para editar persona
-    private func editPerson(_ person: Person) {
+    // Método para editar contacto
+    private func editContact(_ contact: Contact) {
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
         let editVC = storyboard.instantiateViewController(withIdentifier: "AddPersonViewController") as! AddPersonViewController
         
         // Configurar el controlador para modo edición
         editVC.title = "Editar Contacto"
-        editVC.personToEdit = person
+        editVC.contactToEdit = contact
         editVC.onSave = { [weak self] in
-            self?.fetchPersons()
+            self?.fetchContacts()
         }
         
         navigationController?.pushViewController(editVC, animated: true)
@@ -520,19 +392,19 @@ final class AgendaViewcontroller: UITableViewController {
         // Deseleccionar la celda con animación
         tableView.deselectRow(at: indexPath, animated: true)
         
-        // Obtener la persona seleccionada de la sección correspondiente
+        // Obtener el contacto seleccionado de la sección correspondiente
         let letter = sortedLetters[indexPath.section]
-        guard let personsInSection = personsByLetter[letter],
-              indexPath.row < personsInSection.count else {
+        guard let contactsInSection = contactsByLetter[letter],
+              indexPath.row < contactsInSection.count else {
             return
         }
         
-        let selectedPerson = personsInSection[indexPath.row]
+        let selectedContact = contactsInSection[indexPath.row]
         
         // Crear el DetailViewController
         let storyboard = UIStoryboard(name: "Main", bundle: nil)
         let detailVC = storyboard.instantiateViewController(withIdentifier: "DetailViewController") as! DetailViewController
-        detailVC.person = selectedPerson
+        detailVC.contact = selectedContact
         
         // Navegar al detalle
         navigationController?.pushViewController(detailVC, animated: true)

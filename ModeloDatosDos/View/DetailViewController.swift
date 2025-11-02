@@ -2,51 +2,44 @@ import UIKit
 import MapKit
 
 class DetailViewController: UIViewController {
-    var person: Person?
+    var contact: Contact?
 
     @IBOutlet weak var infoLabel: UILabel!
     @IBOutlet weak var mapView: MKMapView!
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        getPerson()
+        getContact()
     }
 
-    private func getPerson() {
-        guard let person = person else {
+    private func getContact() {
+        guard let contact = contact else {
             title = "Sin datos"
             infoLabel.text = "No hay información disponible"
             setupDefaultMap()
             return
         }
         
-        title = person.nombre ?? "Sin nombre"
+        title = contact.nombre
 
-        //Mostrar la informacion de person en el label
-        infoLabel.text = """
-        📱 Teléfono: \(person.telefono ?? "No disponible") \n
-        📍 Dirección: \(person.ubicacion ?? "No disponible") \n
-        🎂 Edad: \(person.edad) años \n
-        🎯 Hobbies: \(person.hobie ?? "Ninguno") \n
+        //Mostrar la informacion del contacto en el label
+        var infoText = """
+        📱 Teléfono: \(contact.telefono ?? "No disponible")
+        📍 Dirección: \(contact.direccion ?? "No disponible")
         """
-
-        //Mostrar la ubicacion en el mapa solo si hay coordenadas válidas
-        if person.latitude != 0 || person.longitude != 0 {
-            let coord = CLLocationCoordinate2D(latitude: person.latitude, longitude: person.longitude)
-            
-            // configuracion region del mapa
-            let region = MKCoordinateRegion(center: coord, span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01))
-            mapView.setRegion(region, animated: false)
-
-            //Agregar pin en el mapa
-            let pin = MKPointAnnotation()
-            pin.coordinate = coord
-            pin.title = person.nombre ?? "Ubicación"
-            pin.subtitle = person.ubicacion ?? "Punto seleccionado"
-            mapView.addAnnotation(pin)
-        } else {
-            setupDefaultMap()
+        
+        if let edad = contact.edad {
+            infoText += "\n🎂 Edad: \(edad) años"
         }
+        
+        if let hobbies = contact.hobbies, !hobbies.isEmpty {
+            infoText += "\n🎯 Hobbies: \(hobbies)"
+        }
+        
+        infoLabel.text = infoText
+
+        // Por ahora, mostrar mapa por defecto ya que Contact no tiene coordenadas
+        setupDefaultMap()
     }
     
     private func setupDefaultMap() {

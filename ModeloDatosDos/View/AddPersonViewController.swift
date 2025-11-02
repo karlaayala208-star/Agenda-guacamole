@@ -1,5 +1,4 @@
 import UIKit
-import CoreData
 import MapKit
 import CoreLocation
 
@@ -13,24 +12,23 @@ class AddPersonViewController: UIViewController {
     @IBOutlet weak var saveButton: UIButton!
 
     var onSave: (() -> Void)?
-    let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
     var selectedLocation: CLLocationCoordinate2D?
     private let geocoder = CLGeocoder()
     
     // Propiedad para modo edición
-    var personToEdit: Person?
+    var contactToEdit: Contact?
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        title = personToEdit != nil ? "Editar Contacto" : "Nueva Persona"
+        title = contactToEdit != nil ? "Editar Contacto" : "Nueva Persona"
         
         setupMapView()
         addGestureRecognizerToMapView()
         setupTextFields()
         
         // Si estamos editando, cargar los datos existentes
-        if let person = personToEdit {
-            loadPersonData(person)
+        if let contact = contactToEdit {
+            loadContactData(contact)
         }
     }
     
@@ -83,7 +81,7 @@ class AddPersonViewController: UIViewController {
         saveButton.titleLabel?.font = UIFont.systemFont(ofSize: 18, weight: .medium)
         
         // Cambiar el texto del botón según el modo
-        let buttonTitle = personToEdit != nil ? "Actualizar" : "Guardar"
+    let buttonTitle = contactToEdit != nil ? "Actualizar" : "Guardar"
         saveButton.setTitle(buttonTitle, for: .normal)
         
         updateSaveButtonState(isEnabled: false)
@@ -247,79 +245,74 @@ class AddPersonViewController: UIViewController {
     }
 
     @IBAction func saveTapped(_ sender: Any) {
-        // Verificar validación del formulario
-        guard isFormValid() else {
-            showValidationAlert()
+        // Verificar validación del formulario básico
+        guard let name = nameField.text?.trimmingCharacters(in: .whitespacesAndNewlines), 
+              !name.isEmpty else {
+            showAlert(title: "Error", message: "El nombre es obligatorio.")
             return
         }
         
-        // Verificar que hay un usuario logueado y obtener su identificador
-        var currentUserIdentifier: String?
-        if let currentEmail = UserDefaults.standard.string(forKey: "currentUserEmail") {
-            currentUserIdentifier = currentEmail
-        } else if let currentUsername = UserManager.shared.getCurrentUsername() {
-            currentUserIdentifier = currentUsername
+        let phone = phoneField.text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let address = addressField.text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ageText = ageField.text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        let hobbies = hobbiesField.text?.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Convertir edad a Int si se proporciona
+        var age: Int? = nil
+        if let ageText = ageText, !ageText.isEmpty {
+            age = Int(ageText)
         }
         
-        guard let userIdentifier = currentUserIdentifier else {
-            showAlert(title: "Error", message: "No hay un usuario logueado. Por favor, inicia sesión.")
-            return
-        }
-        
-        let person: Person
-        
-        if let existingPerson = personToEdit {
-            // Modo edición - actualizar persona existente
-            person = existingPerson
+        if let existingContact = contactToEdit {
+            // Modo edición - actualizar contacto existente
+            let updatedContact = Contact(
+                id: existingContact.id,
+                nombre: name,
+                telefono: phone,
+                direccion: address,
+                edad: age,
+                hobbies: hobbies
+            )
+            
+            ContactManager.shared.updateContact(updatedContact) { [weak self] result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success:
+                        print("✅ Contacto actualizado exitosamente")
+                        self?.onSave?()
+                        self?.navigationController?.popViewController(animated: true)
+                        
+                    case .failure(let error):
+                        print("❌ Error actualizando contacto: \(error)")
+                        self?.showAlert(title: "Error", message: "No se pudo actualizar el contacto. Inténtalo de nuevo.")
+                    }
+                }
+            }
         } else {
-            // Modo creación - crear nueva persona
-            person = Person(context: context)
-            person.id = UUID()
-            person.ownerUsername = userIdentifier // Asignar el identificador del usuario (email o username)
+            // Modo creación - crear nuevo contacto
+            let newContact = Contact(
+                nombre: name,
+                telefono: phone,
+                direccion: address,
+                edad: age,
+                hobbies: hobbies
+            )
+            
+            ContactManager.shared.addContact(newContact) { [weak self] result in
+                DispatchQueue.main.async {
+                    switch result {
+                    case .success:
+                        print("✅ Contacto creado exitosamente")
+                        self?.onSave?()
+                        self?.navigationController?.popViewController(animated: true)
+                        
+                    case .failure(let error):
+                        print("❌ Error creando contacto: \(error)")
+                        self?.showAlert(title: "Error", message: "No se pudo guardar el contacto. Inténtalo de nuevo.")
+                    }
+                }
+            }
         }
-        
-        // Actualizar campos (tanto para crear como para editar)
-        person.nombre = nameField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        person.telefono = phoneField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        person.ubicacion = addressField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        person.edad = Int16(ageField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "0") ?? 0
-        person.hobie = hobbiesField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-
-        // Coordenadas
-        person.latitude = selectedLocation?.latitude ?? 0
-        person.longitude = selectedLocation?.longitude ?? 0
-
-        do {
-            try context.save()
-            onSave?()
-            navigationController?.popViewController(animated: true)
-        } catch {
-            print("Error saving person: \(error)")
-            let action = personToEdit != nil ? "actualizar" : "guardar"
-            showAlert(title: "Error", message: "No se pudo \(action) la persona. Inténtalo de nuevo.")
-        }
-    }
-    
-    private func showValidationAlert() {
-        var message = "Por favor, completa los siguientes campos correctamente:\n\n"
-        
-        if let name = nameField.text?.trimmingCharacters(in: .whitespacesAndNewlines), name.isEmpty || name.count < 2 {
-            message += "• Nombre (mínimo 2 caracteres)\n"
-        }
-        
-        if let phone = phoneField.text?.trimmingCharacters(in: .whitespacesAndNewlines), phone.isEmpty || phone.count < 8 {
-            message += "• Teléfono (mínimo 8 dígitos)\n"
-        }
-        
-        if let address = addressField.text?.trimmingCharacters(in: .whitespacesAndNewlines), address.isEmpty || address.count < 5 {
-            message += "• Dirección (mínimo 5 caracteres)\n"
-        }
-        
-        if let ageText = ageField.text?.trimmingCharacters(in: .whitespacesAndNewlines), ageText.isEmpty || Int(ageText) == nil || Int(ageText)! <= 0 || Int(ageText)! > 120 {
-            message += "• Edad (entre 1 y 120 años)\n"
-        }
-        
-        showAlert(title: "Formulario incompleto", message: message)
     }
     
     private func showAlert(title: String, message: String) {
@@ -380,29 +373,15 @@ extension AddPersonViewController: UITextFieldDelegate {
 
 // MARK: - Edit Mode Support
 extension AddPersonViewController {
-    private func loadPersonData(_ person: Person) {
-        nameField.text = person.nombre
-        phoneField.text = person.telefono
-        addressField.text = person.ubicacion
-        ageField.text = person.edad > 0 ? String(person.edad) : ""
-        hobbiesField.text = person.hobie
+    private func loadContactData(_ contact: Contact) {
+        nameField.text = contact.nombre
+        phoneField.text = contact.telefono
+        addressField.text = contact.direccion
+        ageField.text = contact.edad != nil ? String(contact.edad!) : nil
+        hobbiesField.text = contact.hobbies
         
-        // Cargar ubicación si existe
-        if person.latitude != 0 || person.longitude != 0 {
-            let coordinate = CLLocationCoordinate2D(latitude: person.latitude, longitude: person.longitude)
-            selectedLocation = coordinate
-            
-            // Agregar pin al mapa
-            let annotation = MKPointAnnotation()
-            annotation.coordinate = coordinate
-            annotation.title = person.nombre ?? "Ubicación"
-            annotation.subtitle = person.ubicacion
-            mapView.addAnnotation(annotation)
-            
-            // Centrar mapa en la ubicación
-            let region = MKCoordinateRegion(center: coordinate, latitudinalMeters: 5000, longitudinalMeters: 5000)
-            mapView.setRegion(region, animated: false)
-        }
+        // Si necesitas cargar ubicación, puedes agregar coordenadas al Contact struct
+        // Por ahora, dejamos el mapa en la posición inicial
         
         // Validar formulario después de cargar datos
         DispatchQueue.main.async {
