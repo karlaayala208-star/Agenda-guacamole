@@ -43,12 +43,16 @@ final class AgendaViewcontroller: UITableViewController {
     
     private func setupTitle() {
         // Mostrar el usuario actual si está disponible
-        if let user = UserManager.shared.getCurrentUser() {
-            title = "Agenda - \(user.name)"
-        } else if let currentUsername = UserManager.shared.getCurrentUsername() {
-            title = "Agenda - \(currentUsername)"
-        } else {
-            title = "Agenda"
+        UserManager.shared.getCurrentUser { [weak self] user in
+            DispatchQueue.main.async {
+                if let user = user {
+                    self?.title = "Agenda - \(user.name)"
+                } else if let currentUsername = UserManager.shared.getCurrentUsername() {
+                    self?.title = "Agenda - \(currentUsername)"
+                } else {
+                    self?.title = "Agenda"
+                }
+            }
         }
     }
 

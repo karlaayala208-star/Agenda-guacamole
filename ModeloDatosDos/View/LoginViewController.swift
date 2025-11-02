@@ -53,15 +53,26 @@ class LoginViewController: UIViewController {
             return
         }
         
-        // Validación simple (puedes cambiar estos valores o implementar una validación más compleja)
-        if validateCredentials(username: username, password: password) {
-            // Guardar el usuario actual para uso en la app
-            UserManager.shared.setCurrentUser(username)
-            
-            // Login exitoso - navegar a la agenda
-            navigateToAgenda()
-        } else {
-            showAlert(title: "Error de autenticación", message: "Usuario o contraseña incorrectos")
+        // Mostrar indicador de carga
+        loginButton.isEnabled = false
+        loginButton.setTitle("Iniciando sesión...", for: .normal)
+        
+        // Validación con Firestore (asíncrona)
+        validateCredentials(username: username, password: password) { [weak self] isValid in
+            DispatchQueue.main.async {
+                self?.loginButton.isEnabled = true
+                self?.loginButton.setTitle("Iniciar Sesión", for: .normal)
+                
+                if isValid {
+                    // Guardar el usuario actual para uso en la app
+                    UserManager.shared.setCurrentUser(username)
+                    
+                    // Login exitoso - navegar a la agenda
+                    self?.navigateToAgenda()
+                } else {
+                    self?.showAlert(title: "Error de autenticación", message: "Usuario o contraseña incorrectos")
+                }
+            }
         }
     }
     
@@ -76,8 +87,8 @@ class LoginViewController: UIViewController {
     }
     
     // MARK: - Helper Methods
-    private func validateCredentials(username: String, password: String) -> Bool {
-        return UserManager.shared.validateCredentials(username: username, password: password)
+    private func validateCredentials(username: String, password: String, completion: @escaping (Bool) -> Void) {
+        UserManager.shared.validateCredentials(username: username, password: password, completion: completion)
     }
     
     private func navigateToAgenda() {

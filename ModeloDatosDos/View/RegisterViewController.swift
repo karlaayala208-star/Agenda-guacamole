@@ -229,12 +229,16 @@ class RegisterViewController: UIViewController {
             return
         }
         
-        // Validar que el usuario no exista (simulación)
-        if isUsernameAvailable(username) {
-            // Simular registro exitoso
-            registerUser(name: name, email: email, username: username, password: password, phone: phoneField.text)
-        } else {
-            showAlert(title: "Error", message: "Este nombre de usuario ya está en uso")
+        // Validar que el usuario no exista (validación asíncrona)
+        isUsernameAvailable(username) { [weak self] isAvailable in
+            DispatchQueue.main.async {
+                if isAvailable {
+                    // Simular registro exitoso
+                    self?.registerUser(name: name, email: email, username: username, password: password, phone: self?.phoneField.text)
+                } else {
+                    self?.showAlert(title: "Error", message: "Este nombre de usuario ya está en uso")
+                }
+            }
         }
     }
     
@@ -253,30 +257,42 @@ class RegisterViewController: UIViewController {
         return emailPredicate.evaluate(with: email)
     }
     
-    private func isUsernameAvailable(_ username: String) -> Bool {
-        return UserManager.shared.isUsernameAvailable(username)
+    private func isUsernameAvailable(_ username: String, completion: @escaping (Bool) -> Void) {
+        UserManager.shared.isUsernameAvailable(username, completion: completion)
     }
     
     private func registerUser(name: String, email: String, username: String, password: String, phone: String?) {
+        // Mostrar indicador de carga
+        registerButton.isEnabled = false
+        registerButton.setTitle("Registrando...", for: .normal)
+        
         // Crear usuario con UserManager
         let user = User(name: name, email: email, username: username, password: password, phone: phone)
         
-        if UserManager.shared.registerUser(user) {
-            // Registro exitoso
-            let alert = UIAlertController(
-                title: "¡Registro exitoso!",
-                message: "Tu cuenta ha sido creada correctamente. Ahora puedes iniciar sesión con el usuario: \(username)",
-                preferredStyle: .alert
-            )
-            
-            alert.addAction(UIAlertAction(title: "Iniciar sesión", style: .default) { [weak self] _ in
-                self?.navigateToLogin()
-            })
-            
-            present(alert, animated: true)
-        } else {
-            // Error en el registro
-            showAlert(title: "Error", message: "No se pudo registrar el usuario. El nombre de usuario podría estar en uso.")
+        UserManager.shared.registerUser(user) { [weak self] success, errorMessage in
+            DispatchQueue.main.async {
+                self?.registerButton.isEnabled = true
+                self?.registerButton.setTitle("Registrarse", for: .normal)
+                
+                if success {
+                    // Registro exitoso
+                    let alert = UIAlertController(
+                        title: "¡Registro exitoso!",
+                        message: "Tu cuenta ha sido creada correctamente. Ahora puedes iniciar sesión con el usuario: \(username)",
+                        preferredStyle: .alert
+                    )
+                    
+                    alert.addAction(UIAlertAction(title: "Iniciar sesión", style: .default) { _ in
+                        self?.navigateToLogin()
+                    })
+                    
+                    self?.present(alert, animated: true)
+                } else {
+                    // Error en el registro
+                    let message = errorMessage ?? "No se pudo registrar el usuario. Inténtalo de nuevo."
+                    self?.showAlert(title: "Error", message: message)
+                }
+            }
         }
     }
     
