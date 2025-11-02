@@ -2,6 +2,13 @@ import UIKit
 import CoreData
 
 final class AgendaViewcontroller: UITableViewController {
+    
+    // MARK: - Profile Section Outlets
+    @IBOutlet weak var profileContainerView: UIView!
+    @IBOutlet weak var profileImageView: UIImageView!
+    @IBOutlet weak var userNameLabel: UILabel!
+    @IBOutlet weak var userEmailLabel: UILabel!
+    
     /// variable que almacena las persona a mostrar en la agenda
     var persons: [Person] = []
     /// Diccionario para organizar personas por letra inicial
@@ -22,15 +29,153 @@ final class AgendaViewcontroller: UITableViewController {
             return
         }
         
-        setupTitle()
+        setupProfileSection()
         setupNavigationBar()
+        
+        // Debug: Agregar botón temporal para mostrar todos los contactos
+        addDebugButton()
+        
         fetchPersons()
+    }
+    
+    private func addDebugButton() {
+        let debugButton = UIBarButtonItem(title: "Debug", style: .plain, target: self, action: #selector(showAllContacts))
+        if let rightButton = navigationItem.rightBarButtonItem {
+            navigationItem.rightBarButtonItems = [rightButton, debugButton]
+        } else {
+            navigationItem.rightBarButtonItem = debugButton
+        }
+    }
+    
+    @objc private func showAllContacts() {
+        let alert = UIAlertController(title: "Debug", message: "¿Mostrar todos los contactos sin filtrar?", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "Sí", style: .default) { [weak self] _ in
+            self?.fetchAllPersons()
+        })
+        alert.addAction(UIAlertAction(title: "No", style: .cancel))
+        present(alert, animated: true)
+    }
+    
+    private func fetchAllPersons() {
+        let request: NSFetchRequest<Person> = Person.fetchRequest()
+        request.sortDescriptors = [NSSortDescriptor(key: "nombre", ascending: true)]
+        
+        do {
+            persons = try context.fetch(request)
+            print("📊 TODOS los contactos mostrados: \(persons.count)")
+            organizePersonsByLetter()
+            tableView.reloadData()
+        } catch {
+            print("❌ Error fetching all persons: \(error)")
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         // Recargar datos cuando regresamos a esta pantalla
         fetchPersons()
+        // Actualizar información del perfil
+        loadUserProfile()
+    }
+    
+    private func setupProfileSection() {
+        // Configurar la vista del perfil si existe
+        if let profileContainer = profileContainerView {
+            profileContainer.backgroundColor = UIColor.systemBackground
+            profileContainer.layer.cornerRadius = 12
+            profileContainer.layer.shadowColor = UIColor.black.cgColor
+            profileContainer.layer.shadowOffset = CGSize(width: 0, height: 2)
+            profileContainer.layer.shadowRadius = 4
+            profileContainer.layer.shadowOpacity = 0.1
+        }
+        
+        // Configurar imagen de perfil
+        if let profileImage = profileImageView {
+            profileImage.layer.cornerRadius = 30 // Para hacer circular (asumiendo 60x60)
+            profileImage.clipsToBounds = true
+            profileImage.contentMode = .scaleAspectFill
+            profileImage.backgroundColor = UIColor.systemGray5
+            
+            // Imagen por defecto
+            profileImage.image = createDefaultProfileImage()
+        }
+        
+        // Configurar labels
+        if let nameLabel = userNameLabel {
+            nameLabel.font = UIFont.systemFont(ofSize: 18, weight: .semibold)
+            nameLabel.textColor = UIColor.label
+        }
+        
+        if let emailLabel = userEmailLabel {
+            emailLabel.font = UIFont.systemFont(ofSize: 14, weight: .regular)
+            emailLabel.textColor = UIColor.secondaryLabel
+        }
+        
+        // Cargar información del usuario
+        loadUserProfile()
+        
+        // Configurar título simplificado
+        title = "Contactos"
+    }
+    
+    private func createDefaultProfileImage() -> UIImage? {
+        let size = CGSize(width: 60, height: 60)
+        UIGraphicsBeginImageContextWithOptions(size, false, 0)
+        defer { UIGraphicsEndImageContext() }
+        
+        // Fondo circular
+        UIColor.systemBlue.setFill()
+        let path = UIBezierPath(ovalIn: CGRect(origin: .zero, size: size))
+        path.fill()
+        
+        // Icono de persona
+        let personImage = UIImage(systemName: "person.fill")?.withTintColor(.white, renderingMode: .alwaysOriginal)
+        let imageRect = CGRect(x: 15, y: 15, width: 30, height: 30)
+        personImage?.draw(in: imageRect)
+        
+        return UIGraphicsGetImageFromCurrentImageContext()
+    }
+    
+    private func loadUserProfile() {
+        UserManager.shared.getCurrentUser { [weak self] user in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                if let user = user {
+                    self.userNameLabel?.text = user.name
+                    self.userEmailLabel?.text = user.email
+                } else {
+                    // Fallback si no se puede obtener el usuario
+                    self.userNameLabel?.text = "Usuario"
+                    if let email = UserDefaults.standard.string(forKey: "currentUserEmail") {
+                        self.userEmailLabel?.text = email
+                    } else if let username = UserManager.shared.getCurrentUsername() {
+                        self.userEmailLabel?.text = username
+                    } else {
+                        self.userEmailLabel?.text = "Sin información"
+                    }
+                }
+            }
+        }
+        
+        // Configurar gesto para la imagen de perfil
+        setupProfileImageGesture()
+    }
+    
+    // MARK: - Profile Image Methods
+    @objc private func profileImageTapped() {
+        // Funcionalidad futura para cambiar imagen de perfil
+        let alert = UIAlertController(title: "Imagen de Perfil", message: "Funcionalidad próximamente disponible", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
+    }
+    
+    private func setupProfileImageGesture() {
+        if let profileImage = profileImageView {
+            profileImage.isUserInteractionEnabled = true
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(profileImageTapped))
+            profileImage.addGestureRecognizer(tapGesture)
+        }
     }
     
     private func setupNavigationBar() {
@@ -39,21 +184,6 @@ final class AgendaViewcontroller: UITableViewController {
         
         // Botón para logout
         navigationItem.leftBarButtonItem = UIBarButtonItem(title: "Salir", style: .plain, target: self, action: #selector(logoutTapped))
-    }
-    
-    private func setupTitle() {
-        // Mostrar el usuario actual si está disponible
-        UserManager.shared.getCurrentUser { [weak self] user in
-            DispatchQueue.main.async {
-                if let user = user {
-                    self?.title = "Agenda - \(user.name)"
-                } else if let currentUsername = UserManager.shared.getCurrentUsername() {
-                    self?.title = "Agenda - \(currentUsername)"
-                } else {
-                    self?.title = "Agenda"
-                }
-            }
-        }
     }
 
     @objc func addPerson() {
@@ -66,8 +196,20 @@ final class AgendaViewcontroller: UITableViewController {
     }
 
     func fetchPersons() {
-        guard let currentUsername = UserManager.shared.getCurrentUsername() else {
-            print("No hay usuario logueado")
+        // Intentar obtener el usuario actual
+        var currentUserIdentifier: String?
+        
+        // Primero intentar obtener el email del usuario actual
+        if let currentEmail = UserDefaults.standard.string(forKey: "currentUserEmail") {
+            currentUserIdentifier = currentEmail
+            print("🔍 Usuario logueado por EMAIL: \(currentEmail)")
+        } else if let currentUsername = UserManager.shared.getCurrentUsername() {
+            currentUserIdentifier = currentUsername
+            print("🔍 Usuario logueado por USERNAME: \(currentUsername)")
+        }
+        
+        guard let userIdentifier = currentUserIdentifier else {
+            print("❌ No hay usuario logueado")
             persons = []
             tableView.reloadData()
             return
@@ -76,20 +218,42 @@ final class AgendaViewcontroller: UITableViewController {
         // Primero, migrar datos existentes sin propietario
         migrateExistingPersonsIfNeeded()
         
+        // Migrar contactos del username al email si es necesario
+        migratePersonsFromUsernameToEmail(currentIdentifier: userIdentifier)
+        
         let request: NSFetchRequest<Person> = Person.fetchRequest()
         
-        // Filtrar solo las personas del usuario actual
-        request.predicate = NSPredicate(format: "ownerUsername == %@", currentUsername)
+        // Filtrar solo las personas del usuario actual (compatibilidad con email y username)
+        request.predicate = NSPredicate(format: "ownerUsername == %@", userIdentifier)
         
         // Ordenar alfabéticamente por nombre
         request.sortDescriptors = [NSSortDescriptor(key: "nombre", ascending: true)]
         
         do {
             persons = try context.fetch(request)
+            print("📊 Contactos encontrados para '\(userIdentifier)': \(persons.count)")
+            
+            // Debug: Mostrar todos los contactos en la base de datos
+            debugAllPersons()
+            
             organizePersonsByLetter()
             tableView.reloadData()
         } catch {
-            print("Error fetching persons: \(error)")
+            print("❌ Error fetching persons: \(error)")
+        }
+    }
+    
+    // MARK: - Debug Methods
+    private func debugAllPersons() {
+        let allRequest: NSFetchRequest<Person> = Person.fetchRequest()
+        do {
+            let allPersons = try context.fetch(allRequest)
+            print("🗃️ TODOS los contactos en la base de datos:")
+            for person in allPersons {
+                print("  - \(person.nombre ?? "Sin nombre") -> Owner: '\(person.ownerUsername ?? "nil")'")
+            }
+        } catch {
+            print("❌ Error debugging persons: \(error)")
         }
     }
     
@@ -120,9 +284,13 @@ final class AgendaViewcontroller: UITableViewController {
         do {
             let personsWithoutOwner = try context.fetch(request)
             if !personsWithoutOwner.isEmpty {
-                // Asignar todos los contactos existentes al primer usuario disponible
-                // o a un usuario por defecto
-                let defaultOwner = UserManager.shared.getCurrentUsername() ?? "admin"
+                // Obtener el identificador del usuario actual (email o username)
+                var defaultOwner = "admin"
+                if let currentEmail = UserDefaults.standard.string(forKey: "currentUserEmail") {
+                    defaultOwner = currentEmail
+                } else if let currentUsername = UserManager.shared.getCurrentUsername() {
+                    defaultOwner = currentUsername
+                }
                 
                 for person in personsWithoutOwner {
                     person.ownerUsername = defaultOwner
@@ -135,7 +303,50 @@ final class AgendaViewcontroller: UITableViewController {
             UserDefaults.standard.set(true, forKey: migrationKey)
             UserDefaults.standard.synchronize()
         } catch {
-            print("Error en migración: \(error)")
+            print("❌ Error en migración: \(error)")
+        }
+    }
+    
+    private func migratePersonsFromUsernameToEmail(currentIdentifier: String) {
+        // Solo migrar si el usuario actual está logueado por email
+        guard currentIdentifier.contains("@") else { return }
+        
+        // Obtener el usuario actual para obtener su username
+        UserManager.shared.getCurrentUser { [weak self] user in
+            guard let self = self,
+                  let user = user else { return }
+
+            let username = user.username
+            
+            DispatchQueue.main.async {
+                let migrationKey = "PersonEmailMigrationCompleted_\(user.email)"
+                guard !UserDefaults.standard.bool(forKey: migrationKey) else { return }
+                
+                let request: NSFetchRequest<Person> = Person.fetchRequest()
+                request.predicate = NSPredicate(format: "ownerUsername == %@", username.lowercased())
+                
+                do {
+                    let personsWithUsername = try self.context.fetch(request)
+                    if !personsWithUsername.isEmpty {
+                        print("🔄 Migrando \(personsWithUsername.count) contactos de username '\(username)' a email '\(user.email)'")
+                        
+                        for person in personsWithUsername {
+                            person.ownerUsername = user.email.lowercased()
+                        }
+                        
+                        try self.context.save()
+                        print("✅ Migración completada exitosamente")
+                        
+                        // Recargar los contactos después de la migración
+                        self.fetchPersons()
+                    }
+                    
+                    UserDefaults.standard.set(true, forKey: migrationKey)
+                    UserDefaults.standard.synchronize()
+                } catch {
+                    print("❌ Error en migración de username a email: \(error)")
+                }
+            }
         }
     }
     

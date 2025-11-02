@@ -253,8 +253,15 @@ class AddPersonViewController: UIViewController {
             return
         }
         
-        // Verificar que hay un usuario logueado
-        guard let currentUsername = UserManager.shared.getCurrentUsername() else {
+        // Verificar que hay un usuario logueado y obtener su identificador
+        var currentUserIdentifier: String?
+        if let currentEmail = UserDefaults.standard.string(forKey: "currentUserEmail") {
+            currentUserIdentifier = currentEmail
+        } else if let currentUsername = UserManager.shared.getCurrentUsername() {
+            currentUserIdentifier = currentUsername
+        }
+        
+        guard let userIdentifier = currentUserIdentifier else {
             showAlert(title: "Error", message: "No hay un usuario logueado. Por favor, inicia sesión.")
             return
         }
@@ -268,7 +275,7 @@ class AddPersonViewController: UIViewController {
             // Modo creación - crear nueva persona
             person = Person(context: context)
             person.id = UUID()
-            person.ownerUsername = currentUsername // Asignar el usuario propietario solo para nuevos contactos
+            person.ownerUsername = userIdentifier // Asignar el identificador del usuario (email o username)
         }
         
         // Actualizar campos (tanto para crear como para editar)
