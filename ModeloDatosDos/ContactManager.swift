@@ -9,15 +9,19 @@ struct Contact {
     let direccion: String?
     let edad: Int?
     let hobbies: String?
+    let latitude: Double?
+    let longitude: Double?
     let createdAt: Date
     
-    init(id: String = UUID().uuidString, nombre: String, telefono: String? = nil, direccion: String? = nil, edad: Int? = nil, hobbies: String? = nil, createdAt: Date = Date()) {
+    init(id: String = UUID().uuidString, nombre: String, telefono: String? = nil, direccion: String? = nil, edad: Int? = nil, hobbies: String? = nil, latitude: Double? = nil, longitude: Double? = nil, createdAt: Date = Date()) {
         self.id = id
         self.nombre = nombre
         self.telefono = telefono
         self.direccion = direccion
         self.edad = edad
         self.hobbies = hobbies
+        self.latitude = latitude
+        self.longitude = longitude
         self.createdAt = createdAt
     }
     
@@ -30,6 +34,8 @@ struct Contact {
         self.direccion = dictionary["direccion"] as? String
         self.edad = dictionary["edad"] as? Int
         self.hobbies = dictionary["hobbies"] as? String
+        self.latitude = dictionary["latitude"] as? Double
+        self.longitude = dictionary["longitude"] as? Double
         
         if let timestamp = dictionary["createdAt"] as? Timestamp {
             self.createdAt = timestamp.dateValue()
@@ -58,6 +64,14 @@ struct Contact {
         
         if let hobbies = hobbies, !hobbies.isEmpty {
             dict["hobbies"] = hobbies
+        }
+        
+        if let latitude = latitude {
+            dict["latitude"] = latitude
+        }
+        
+        if let longitude = longitude {
+            dict["longitude"] = longitude
         }
         
         return dict
@@ -172,6 +186,8 @@ class ContactManager {
                         let direccion = data["direccion"] as? String
                         let edad = data["edad"] as? Int
                         let hobbies = data["hobbies"] as? String
+                        let latitude = data["latitude"] as? Double
+                        let longitude = data["longitude"] as? Double
                         
                         return Contact(
                             id: doc.documentID,
@@ -179,7 +195,9 @@ class ContactManager {
                             telefono: telefono?.isEmpty == true ? nil : telefono,
                             direccion: direccion?.isEmpty == true ? nil : direccion,
                             edad: edad,
-                            hobbies: hobbies?.isEmpty == true ? nil : hobbies
+                            hobbies: hobbies?.isEmpty == true ? nil : hobbies,
+                            latitude: latitude,
+                            longitude: longitude
                         )
                     }
                     
@@ -224,6 +242,8 @@ class ContactManager {
                         let direccion = data["direccion"] as? String
                         let edad = data["edad"] as? Int
                         let hobbies = data["hobbies"] as? String
+                        let latitude = data["latitude"] as? Double
+                        let longitude = data["longitude"] as? Double
                         
                         return Contact(
                             id: doc.documentID,
@@ -231,7 +251,9 @@ class ContactManager {
                             telefono: telefono?.isEmpty == true ? nil : telefono,
                             direccion: direccion?.isEmpty == true ? nil : direccion,
                             edad: edad,
-                            hobbies: hobbies?.isEmpty == true ? nil : hobbies
+                            hobbies: hobbies?.isEmpty == true ? nil : hobbies,
+                            latitude: latitude,
+                            longitude: longitude
                         )
                     }
                     

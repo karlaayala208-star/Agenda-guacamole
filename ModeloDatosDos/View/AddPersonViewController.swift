@@ -271,7 +271,9 @@ class AddPersonViewController: UIViewController {
                 telefono: phone,
                 direccion: address,
                 edad: age,
-                hobbies: hobbies
+                hobbies: hobbies,
+                latitude: selectedLocation?.latitude,
+                longitude: selectedLocation?.longitude
             )
             
             ContactManager.shared.updateContact(updatedContact) { [weak self] result in
@@ -295,7 +297,9 @@ class AddPersonViewController: UIViewController {
                 telefono: phone,
                 direccion: address,
                 edad: age,
-                hobbies: hobbies
+                hobbies: hobbies,
+                latitude: selectedLocation?.latitude,
+                longitude: selectedLocation?.longitude
             )
             
             ContactManager.shared.addContact(newContact) { [weak self] result in

@@ -38,8 +38,29 @@ class DetailViewController: UIViewController {
         
         infoLabel.text = infoText
 
-        // Por ahora, mostrar mapa por defecto ya que Contact no tiene coordenadas
-        setupDefaultMap()
+        // Configurar mapa con coordenadas del contacto si están disponibles
+        setupMap()
+    }
+    
+    private func setupMap() {
+        guard let contact = contact,
+              let latitude = contact.latitude,
+              let longitude = contact.longitude else {
+            setupDefaultMap()
+            return
+        }
+        
+        // Usar las coordenadas guardadas del contacto
+        let contactLocation = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        let region = MKCoordinateRegion(center: contactLocation, latitudinalMeters: 1000, longitudinalMeters: 1000)
+        mapView.setRegion(region, animated: false)
+        
+        // Agregar un pin en la ubicación del contacto
+        let annotation = MKPointAnnotation()
+        annotation.coordinate = contactLocation
+        annotation.title = contact.nombre
+        annotation.subtitle = contact.direccion
+        mapView.addAnnotation(annotation)
     }
     
     private func setupDefaultMap() {
