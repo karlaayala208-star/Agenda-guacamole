@@ -9,8 +9,9 @@ struct User {
     let password: String
     let phone: String?
     let registrationDate: Date
+    let imageProfile: String? // Campo para imagen en base64
     
-    init(name: String, email: String, username: String, password: String, phone: String? = nil, registrationDate: Date = Date(), userId: String? = nil) {
+    init(name: String, email: String, username: String, password: String, phone: String? = nil, registrationDate: Date = Date(), userId: String? = nil, imageProfile: String? = nil) {
         self.userId = userId
         self.name = name
         self.email = email
@@ -18,6 +19,7 @@ struct User {
         self.password = password
         self.phone = phone
         self.registrationDate = registrationDate
+        self.imageProfile = imageProfile
     }
     
     init?(from dictionary: [String: Any]) {
@@ -36,6 +38,7 @@ struct User {
         self.password = password
         self.phone = dictionary["phone"] as? String
         self.registrationDate = Date(timeIntervalSince1970: registrationTimestamp)
+        self.imageProfile = dictionary["imageProfile"] as? String
     }
     
     func toDictionary() -> [String: Any] {
@@ -53,6 +56,10 @@ struct User {
         
         if let phone = phone {
             dict["phone"] = phone
+        }
+        
+        if let imageProfile = imageProfile {
+            dict["imageProfile"] = imageProfile
         }
         
         return dict
@@ -346,6 +353,46 @@ class UserManager {
                     completion(true)
                 }
             }
+        }
+    }
+    
+    // MARK: - Profile Image Methods
+    func updateProfileImage(imageBase64: String?, completion: @escaping (Bool, String?) -> Void) {
+        guard let currentUserEmail = UserDefaults.standard.string(forKey: "currentUserEmail") else {
+            completion(false, "No hay usuario logueado")
+            return
+        }
+        
+        // Buscar el usuario por email
+        getUser(by: currentUserEmail, byEmail: true) { [weak self] user in
+            guard let self = self,
+                  let user = user,
+                  let userId = user.userId else {
+                completion(false, "Usuario no encontrado")
+                return
+            }
+            
+            // Actualizar solo el campo imageProfile
+            var updateData: [String: Any] = [:]
+            
+            if let imageBase64 = imageBase64 {
+                updateData["imageProfile"] = imageBase64
+            } else {
+                // Si se pasa nil, eliminar la imagen de perfil
+                updateData["imageProfile"] = FieldValue.delete()
+            }
+            
+            self.db.collection(self.usersCollection)
+                .document(userId)
+                .updateData(updateData) { error in
+                    if let error = error {
+                        print("Error actualizando imagen de perfil: \(error.localizedDescription)")
+                        completion(false, "Error actualizando imagen de perfil")
+                    } else {
+                        print("✅ Imagen de perfil actualizada exitosamente")
+                        completion(true, nil)
+                    }
+                }
         }
     }
 }

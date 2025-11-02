@@ -1,6 +1,7 @@
 import UIKit
+import PhotosUI
 
-final class AgendaViewcontroller: UITableViewController {
+final class AgendaViewcontroller: UITableViewController, PHPickerViewControllerDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
     // MARK: - Profile Section Outlets
     @IBOutlet weak var profileContainerView: UIView!
@@ -103,8 +104,13 @@ final class AgendaViewcontroller: UITableViewController {
             profileImage.contentMode = .scaleAspectFill
             profileImage.backgroundColor = UIColor.systemGray5
             
-            // Imagen por defecto
+            // Imagen por defecto inicialmente
             profileImage.image = createDefaultProfileImage()
+            
+            // Configurar gesture para tap
+            profileImage.isUserInteractionEnabled = true
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(profileImageTapped))
+            profileImage.addGestureRecognizer(tapGesture)
         }
         
         // Configurar labels
@@ -151,6 +157,16 @@ final class AgendaViewcontroller: UITableViewController {
                 if let user = user {
                     self.userNameLabel?.text = user.name
                     self.userEmailLabel?.text = user.email
+                    
+                    // Cargar imagen de perfil si existe
+                    if let imageBase64 = user.imageProfile,
+                       let imageData = Data(base64Encoded: imageBase64),
+                       let image = UIImage(data: imageData) {
+                        self.profileImageView?.image = image
+                    } else {
+                        // Usar imagen por defecto si no hay imagen guardada
+                        self.profileImageView?.image = self.createDefaultProfileImage()
+                    }
                 } else {
                     // Fallback si no se puede obtener el usuario
                     self.userNameLabel?.text = "Usuario"
@@ -161,28 +177,123 @@ final class AgendaViewcontroller: UITableViewController {
                     } else {
                         self.userEmailLabel?.text = "Sin información"
                     }
+                    self.profileImageView?.image = self.createDefaultProfileImage()
                 }
             }
         }
-        
-        // Configurar gesto para la imagen de perfil
-        setupProfileImageGesture()
     }
     
     // MARK: - Profile Image Methods
     @objc private func profileImageTapped() {
-        // Funcionalidad futura para cambiar imagen de perfil
-        let alert = UIAlertController(title: "Imagen de Perfil", message: "Funcionalidad próximamente disponible", preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
+        presentPhotoLibrary()
+    }
+
+    private func presentPhotoLibrary() {
+        if #available(iOS 14, *) {
+            // Usar PHPickerViewController para iOS 14+
+            var config = PHPickerConfiguration()
+            config.selectionLimit = 1
+            config.filter = .images
+            
+            let picker = PHPickerViewController(configuration: config)
+            picker.delegate = self
+            present(picker, animated: true)
+        } else {
+            // Fallback para versiones anteriores
+            let picker = UIImagePickerController()
+            picker.delegate = self
+            picker.sourceType = .photoLibrary
+            picker.allowsEditing = true
+            present(picker, animated: true)
+        }
     }
     
-    private func setupProfileImageGesture() {
-        if let profileImage = profileImageView {
-            profileImage.isUserInteractionEnabled = true
-            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(profileImageTapped))
-            profileImage.addGestureRecognizer(tapGesture)
+    // MARK: - PHPickerViewControllerDelegate
+    @available(iOS 14, *)
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        
+        guard let result = results.first else { return }
+        
+        result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
+            if let error = error {
+                print("Error cargando imagen: \(error)")
+                return
+            }
+            
+            if let image = object as? UIImage {
+                DispatchQueue.main.async {
+                    self?.updateProfileImage(image)
+                }
+            }
         }
+    }
+    
+    // MARK: - UIImagePickerControllerDelegate
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        picker.dismiss(animated: true)
+        
+        var selectedImage: UIImage?
+        
+        if let editedImage = info[.editedImage] as? UIImage {
+            selectedImage = editedImage
+        } else if let originalImage = info[.originalImage] as? UIImage {
+            selectedImage = originalImage
+        }
+        
+        if let image = selectedImage {
+            updateProfileImage(image)
+        }
+    }
+    
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
+    }
+    
+    // MARK: - Image Processing
+    private func updateProfileImage(_ image: UIImage) {
+        // Redimensionar la imagen para optimizar el almacenamiento
+        let resizedImage = resizeImage(image, to: CGSize(width: 200, height: 200))
+        
+        // Actualizar la UI inmediatamente
+        profileImageView.image = resizedImage
+        
+        // Convertir a base64 y guardar en Firestore
+        if let imageData = resizedImage.jpegData(compressionQuality: 0.8) {
+            let imageBase64 = imageData.base64EncodedString()
+            saveProfileImageToFirestore(imageBase64)
+        }
+    }
+    
+    private func resizeImage(_ image: UIImage, to size: CGSize) -> UIImage {
+        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+        defer { UIGraphicsEndImageContext() }
+        
+        image.draw(in: CGRect(origin: .zero, size: size))
+        return UIGraphicsGetImageFromCurrentImageContext() ?? image
+    }
+    
+    private func saveProfileImageToFirestore(_ imageBase64: String?) {
+        UserManager.shared.updateProfileImage(imageBase64: imageBase64) { [weak self] success, error in
+            DispatchQueue.main.async {
+                if success {
+                    print("✅ Imagen de perfil guardada en Firestore")
+                } else {
+                    print("❌ Error guardando imagen de perfil: \(error ?? "Error desconocido")")
+                    self?.showImageSaveError()
+                }
+            }
+        }
+    }
+    
+    private func showImageSaveError() {
+        let alert = UIAlertController(
+            title: "Error",
+            message: "No se pudo guardar la imagen de perfil. Inténtalo de nuevo.",
+            preferredStyle: .alert
+        )
+        alert.addAction(UIAlertAction(title: "OK", style: .default))
+        present(alert, animated: true)
     }
     
     private func setupNavigationBar() {
