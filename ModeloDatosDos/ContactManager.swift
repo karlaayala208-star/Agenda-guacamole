@@ -11,9 +11,10 @@ struct Contact {
     let hobbies: String?
     let latitude: Double?
     let longitude: Double?
+    let profileImage: String? // Base64 encoded image
     let createdAt: Date
     
-    init(id: String = UUID().uuidString, nombre: String, telefono: String? = nil, direccion: String? = nil, edad: Int? = nil, hobbies: String? = nil, latitude: Double? = nil, longitude: Double? = nil, createdAt: Date = Date()) {
+    init(id: String = UUID().uuidString, nombre: String, telefono: String? = nil, direccion: String? = nil, edad: Int? = nil, hobbies: String? = nil, latitude: Double? = nil, longitude: Double? = nil, profileImage: String? = nil, createdAt: Date = Date()) {
         self.id = id
         self.nombre = nombre
         self.telefono = telefono
@@ -22,6 +23,7 @@ struct Contact {
         self.hobbies = hobbies
         self.latitude = latitude
         self.longitude = longitude
+        self.profileImage = profileImage
         self.createdAt = createdAt
     }
     
@@ -36,6 +38,7 @@ struct Contact {
         self.hobbies = dictionary["hobbies"] as? String
         self.latitude = dictionary["latitude"] as? Double
         self.longitude = dictionary["longitude"] as? Double
+        self.profileImage = dictionary["profileImage"] as? String
         
         if let timestamp = dictionary["createdAt"] as? Timestamp {
             self.createdAt = timestamp.dateValue()
@@ -72,6 +75,10 @@ struct Contact {
         
         if let longitude = longitude {
             dict["longitude"] = longitude
+        }
+        
+        if let profileImage = profileImage, !profileImage.isEmpty {
+            dict["profileImage"] = profileImage
         }
         
         return dict
@@ -188,6 +195,7 @@ class ContactManager {
                         let hobbies = data["hobbies"] as? String
                         let latitude = data["latitude"] as? Double
                         let longitude = data["longitude"] as? Double
+                        let profileImage = data["profileImage"] as? String
                         
                         return Contact(
                             id: doc.documentID,
@@ -197,7 +205,8 @@ class ContactManager {
                             edad: edad,
                             hobbies: hobbies?.isEmpty == true ? nil : hobbies,
                             latitude: latitude,
-                            longitude: longitude
+                            longitude: longitude,
+                            profileImage: profileImage?.isEmpty == true ? nil : profileImage
                         )
                     }
                     
@@ -244,6 +253,7 @@ class ContactManager {
                         let hobbies = data["hobbies"] as? String
                         let latitude = data["latitude"] as? Double
                         let longitude = data["longitude"] as? Double
+                        let profileImage = data["profileImage"] as? String
                         
                         return Contact(
                             id: doc.documentID,
@@ -253,7 +263,8 @@ class ContactManager {
                             edad: edad,
                             hobbies: hobbies?.isEmpty == true ? nil : hobbies,
                             latitude: latitude,
-                            longitude: longitude
+                            longitude: longitude,
+                            profileImage: profileImage?.isEmpty == true ? nil : profileImage
                         )
                     }
                     
@@ -278,7 +289,8 @@ class ContactManager {
             let contactData: [String: Any] = [
                 "nombre": contact.nombre,
                 "telefono": contact.telefono ?? "",
-                "direccion": contact.direccion ?? ""
+                "direccion": contact.direccion ?? "",
+                "profileImage": contact.profileImage ?? ""
             ]
             
             self.db.collection("users")

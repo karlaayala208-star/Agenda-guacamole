@@ -383,6 +383,33 @@
                                     <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="6" translatesAutoresizingMaskIntoConstraints="NO" id="NJn-xd-g95">
                                         <rect key="frame" x="10" y="0.0" width="373" height="659"/>
                                         <subviews>
+                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="profile-container-add">
+                                                <rect key="frame" x="0.0" y="0.0" width="373" height="140"/>
+                                                <subviews>
+                                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="profile-image-add-view">
+                                                        <rect key="frame" x="136.66666666666666" y="20" width="100" height="100"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="100" id="profile-image-add-width"/>
+                                                            <constraint firstAttribute="height" constant="100" id="profile-image-add-height"/>
+                                                        </constraints>
+                                                    </imageView>
+                                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Toca para agregar foto" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="profile-hint-label-add">
+                                                        <rect key="frame" x="20" y="125" width="333" height="15"/>
+                                                        <fontDescription key="fontDescription" type="system" pointSize="12"/>
+                                                        <color key="textColor" systemColor="secondaryLabelColor"/>
+                                                        <nil key="highlightedColor"/>
+                                                    </label>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="profile-image-add-view" firstAttribute="centerX" secondItem="profile-container-add" secondAttribute="centerX" id="profile-image-add-center-x"/>
+                                                    <constraint firstItem="profile-image-add-view" firstAttribute="top" secondItem="profile-container-add" secondAttribute="top" constant="20" id="profile-image-add-top"/>
+                                                    <constraint firstItem="profile-hint-label-add" firstAttribute="top" secondItem="profile-image-add-view" secondAttribute="bottom" constant="5" id="profile-hint-add-top"/>
+                                                    <constraint firstItem="profile-hint-label-add" firstAttribute="leading" secondItem="profile-container-add" secondAttribute="leading" constant="20" id="profile-hint-add-leading"/>
+                                                    <constraint firstItem="profile-container-add" firstAttribute="trailing" secondItem="profile-hint-label-add" secondAttribute="trailing" constant="20" id="profile-hint-add-trailing"/>
+                                                    <constraint firstAttribute="height" constant="140" id="profile-container-add-height"/>
+                                                    <constraint firstAttribute="bottom" secondItem="profile-hint-label-add" secondAttribute="bottom" id="profile-container-add-bottom"/>
+                                                </constraints>
+                                            </view>
                                             <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Nombre" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="cPa-Fm-SXi">
                                                 <rect key="frame" x="0.0" y="0.0" width="373" height="21"/>
                                                 <constraints>
@@ -545,6 +572,7 @@
                         <outlet property="mapView" destination="szV-sB-aeN" id="vih-82-JTC"/>
                         <outlet property="nameField" destination="Cc0-F3-sya" id="yu5-78-Adf"/>
                         <outlet property="phoneField" destination="uLG-kz-dDQ" id="rRH-3E-VCF"/>
+                        <outlet property="profileImageView" destination="profile-image-add-view" id="profile-image-add-outlet"/>
                         <outlet property="saveButton" destination="Bz6-3r-hUv" id="saveButtonOutlet"/>
                     </connections>
                 </viewController>
@@ -566,6 +594,24 @@
                                     <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" spacing="10" translatesAutoresizingMaskIntoConstraints="NO" id="otb-Pp-Ax6">
                                         <rect key="frame" x="10" y="10" width="373" height="749"/>
                                         <subviews>
+                                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="detail-profile-container">
+                                                <rect key="frame" x="0.0" y="0.0" width="373" height="120"/>
+                                                <subviews>
+                                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFill" horizontalHuggingPriority="251" verticalHuggingPriority="251" translatesAutoresizingMaskIntoConstraints="NO" id="detail-profile-image-view">
+                                                        <rect key="frame" x="136.66666666666666" y="10" width="100" height="100"/>
+                                                        <constraints>
+                                                            <constraint firstAttribute="width" constant="100" id="detail-profile-image-width"/>
+                                                            <constraint firstAttribute="height" constant="100" id="detail-profile-image-height"/>
+                                                        </constraints>
+                                                    </imageView>
+                                                </subviews>
+                                                <constraints>
+                                                    <constraint firstItem="detail-profile-image-view" firstAttribute="centerX" secondItem="detail-profile-container" secondAttribute="centerX" id="detail-profile-image-center-x"/>
+                                                    <constraint firstItem="detail-profile-image-view" firstAttribute="top" secondItem="detail-profile-container" secondAttribute="top" constant="10" id="detail-profile-image-top"/>
+                                                    <constraint firstAttribute="height" constant="120" id="detail-profile-container-height"/>
+                                                    <constraint firstAttribute="bottom" secondItem="detail-profile-image-view" secondAttribute="bottom" constant="10" id="detail-profile-image-bottom"/>
+                                                </constraints>
+                                            </view>
                                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="edS-jj-OjY">
                                                 <rect key="frame" x="0.0" y="0.0" width="373" height="20.333333333333332"/>
                                                 <subviews>
@@ -610,6 +656,7 @@
                     <connections>
                         <outlet property="infoLabel" destination="Op0-MQ-c40" id="qce-xK-cGz"/>
                         <outlet property="mapView" destination="Bk9-y9-qY8" id="7Zn-cj-nCB"/>
+                        <outlet property="profileImageView" destination="detail-profile-image-view" id="detail-profile-image-outlet"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="QEc-71-FT2" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>

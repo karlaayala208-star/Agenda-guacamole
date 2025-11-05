@@ -400,7 +400,103 @@ final class AgendaViewcontroller: UITableViewController, PHPickerViewControllerD
         // Limpiar el detailTextLabel para que no muestre información adicional
         cell.detailTextLabel?.text = nil
         
+        // Configurar imagen de perfil
+        setupContactProfileImage(for: cell, contact: contact)
+        
         return cell
+    }
+    
+    private func setupContactProfileImage(for cell: UITableViewCell, contact: Contact) {
+        // Crear o configurar el imageView si no existe
+        if cell.imageView?.image == nil {
+            cell.imageView?.contentMode = .scaleAspectFill
+            cell.imageView?.layer.cornerRadius = 20 // Radio para imagen circular (40x40)
+            cell.imageView?.clipsToBounds = true
+            cell.imageView?.backgroundColor = UIColor.systemGray5
+        }
+        
+        // Cargar imagen de perfil o usar imagen por defecto
+        if let profileImageBase64 = contact.profileImage,
+           let imageData = Data(base64Encoded: profileImageBase64),
+           let profileImage = UIImage(data: imageData) {
+            // Redimensionar la imagen para la celda
+            let resizedImage = resizeImageForCell(profileImage, to: CGSize(width: 40, height: 40))
+            cell.imageView?.image = resizedImage
+        } else {
+            // Usar imagen por defecto
+            cell.imageView?.image = createDefaultContactImage(for: contact.nombre)
+        }
+    }
+    
+    private func createDefaultContactImage(for name: String) -> UIImage? {
+        let size = CGSize(width: 40, height: 40)
+        UIGraphicsBeginImageContextWithOptions(size, false, 0)
+        defer { UIGraphicsEndImageContext() }
+        
+        // Obtener las iniciales del nombre
+        let initials = getInitials(from: name)
+        
+        // Generar color de fondo basado en el nombre
+        let backgroundColor = generateColor(from: name)
+        
+        // Fondo circular
+        backgroundColor.setFill()
+        let path = UIBezierPath(ovalIn: CGRect(origin: .zero, size: size))
+        path.fill()
+        
+        // Dibujar iniciales
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: UIFont.systemFont(ofSize: 16, weight: .medium),
+            .foregroundColor: UIColor.white
+        ]
+        
+        let textSize = initials.size(withAttributes: attributes)
+        let textRect = CGRect(
+            x: (size.width - textSize.width) / 2,
+            y: (size.height - textSize.height) / 2,
+            width: textSize.width,
+            height: textSize.height
+        )
+        
+        initials.draw(in: textRect, withAttributes: attributes)
+        
+        return UIGraphicsGetImageFromCurrentImageContext()
+    }
+    
+    private func getInitials(from name: String) -> String {
+        let components = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            .components(separatedBy: .whitespaces)
+        
+        if components.count >= 2 {
+            let firstName = String(components[0].prefix(1)).uppercased()
+            let lastName = String(components[1].prefix(1)).uppercased()
+            return firstName + lastName
+        } else if let firstChar = components.first?.first {
+            return String(firstChar).uppercased()
+        }
+        
+        return "?"
+    }
+    
+    private func generateColor(from name: String) -> UIColor {
+        // Generar un color consistente basado en el hash del nombre
+        let hash = name.hash
+        let colors: [UIColor] = [
+            .systemBlue, .systemGreen, .systemOrange, .systemPurple,
+            .systemRed, .systemTeal, .systemIndigo, .systemPink,
+            .systemBrown, .systemGray
+        ]
+        
+        let index = abs(hash) % colors.count
+        return colors[index]
+    }
+    
+    private func resizeImageForCell(_ image: UIImage, to size: CGSize) -> UIImage {
+        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+        defer { UIGraphicsEndImageContext() }
+        
+        image.draw(in: CGRect(origin: .zero, size: size))
+        return UIGraphicsGetImageFromCurrentImageContext() ?? image
     }
     
     // Helper function para obtener la primera letra en mayúscula

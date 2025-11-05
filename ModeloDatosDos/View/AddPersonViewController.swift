@@ -1,8 +1,10 @@
 import UIKit
 import MapKit
 import CoreLocation
+import PhotosUI
 
-class AddPersonViewController: UIViewController {
+class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    @IBOutlet weak var profileImageView: UIImageView!
     @IBOutlet weak var nameField: UITextField!
     @IBOutlet weak var phoneField: UITextField!
     @IBOutlet weak var addressField: UITextField!
@@ -14,6 +16,7 @@ class AddPersonViewController: UIViewController {
     var onSave: (() -> Void)?
     var selectedLocation: CLLocationCoordinate2D?
     private let geocoder = CLGeocoder()
+    private var selectedProfileImage: UIImage?
     
     // Propiedad para modo edición
     var contactToEdit: Contact?
@@ -22,6 +25,7 @@ class AddPersonViewController: UIViewController {
         super.viewDidLoad()
         title = contactToEdit != nil ? "Editar Contacto" : "Nueva Persona"
         
+        setupProfileImageView()
         setupMapView()
         addGestureRecognizerToMapView()
         setupTextFields()
@@ -30,6 +34,152 @@ class AddPersonViewController: UIViewController {
         if let contact = contactToEdit {
             loadContactData(contact)
         }
+    }
+    
+    private func setupProfileImageView() {
+        guard let profileImageView = profileImageView else { return }
+        
+        // Configurar la imagen de perfil
+        profileImageView.layer.cornerRadius = 50 // Para hacer circular (asumiendo 100x100)
+        profileImageView.clipsToBounds = true
+        profileImageView.contentMode = .scaleAspectFill
+        profileImageView.backgroundColor = UIColor.systemGray5
+        
+        // Imagen por defecto inicialmente
+        profileImageView.image = createDefaultProfileImage()
+        
+        // Configurar gesture para tap
+        profileImageView.isUserInteractionEnabled = true
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(profileImageTapped))
+        profileImageView.addGestureRecognizer(tapGesture)
+    }
+    
+    @objc private func profileImageTapped() {
+        presentImagePicker()
+    }
+    
+    private func presentImagePicker() {
+        let alert = UIAlertController(title: "Seleccionar imagen", message: "Elige una opción", preferredStyle: .actionSheet)
+        
+        alert.addAction(UIAlertAction(title: "Galería", style: .default) { [weak self] _ in
+            self?.presentPhotoLibrary()
+        })
+        
+        alert.addAction(UIAlertAction(title: "Quitar imagen", style: .destructive) { [weak self] _ in
+            self?.removeProfileImage()
+        })
+        
+        alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
+        
+        // Para iPad
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = profileImageView
+            popover.sourceRect = profileImageView.bounds
+        }
+        
+        present(alert, animated: true)
+    }
+    
+    private func presentPhotoLibrary() {
+        if #available(iOS 14, *) {
+            // Usar PHPickerViewController para iOS 14+
+            var config = PHPickerConfiguration()
+            config.selectionLimit = 1
+            config.filter = .images
+            
+            let picker = PHPickerViewController(configuration: config)
+            picker.delegate = self
+            present(picker, animated: true)
+        } else {
+            // Fallback para versiones anteriores
+            let picker = UIImagePickerController()
+            picker.delegate = self
+            picker.sourceType = .photoLibrary
+            picker.allowsEditing = true
+            present(picker, animated: true)
+        }
+    }
+    
+    private func removeProfileImage() {
+        selectedProfileImage = nil
+        profileImageView?.image = createDefaultProfileImage()
+    }
+    
+    private func createDefaultProfileImage() -> UIImage? {
+        let size = CGSize(width: 100, height: 100)
+        UIGraphicsBeginImageContextWithOptions(size, false, 0)
+        defer { UIGraphicsEndImageContext() }
+        
+        // Fondo circular
+        UIColor.systemGray4.setFill()
+        let path = UIBezierPath(ovalIn: CGRect(origin: .zero, size: size))
+        path.fill()
+        
+        // Icono de persona
+        let personImage = UIImage(systemName: "person.fill")?.withTintColor(.systemGray, renderingMode: .alwaysOriginal)
+        let imageRect = CGRect(x: 25, y: 25, width: 50, height: 50)
+        personImage?.draw(in: imageRect)
+        
+        return UIGraphicsGetImageFromCurrentImageContext()
+    }
+    
+    // MARK: - PHPickerViewControllerDelegate
+    @available(iOS 14, *)
+    func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
+        picker.dismiss(animated: true)
+        
+        guard let result = results.first else { return }
+        
+        result.itemProvider.loadObject(ofClass: UIImage.self) { [weak self] object, error in
+            if let error = error {
+                print("Error cargando imagen: \(error)")
+                return
+            }
+            
+            if let image = object as? UIImage {
+                DispatchQueue.main.async {
+                    self?.updateProfileImage(image)
+                }
+            }
+        }
+    }
+    
+    // MARK: - UIImagePickerControllerDelegate
+    func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+        picker.dismiss(animated: true)
+        
+        var selectedImage: UIImage?
+        
+        if let editedImage = info[.editedImage] as? UIImage {
+            selectedImage = editedImage
+        } else if let originalImage = info[.originalImage] as? UIImage {
+            selectedImage = originalImage
+        }
+        
+        if let image = selectedImage {
+            updateProfileImage(image)
+        }
+    }
+    
+    func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+        picker.dismiss(animated: true)
+    }
+    
+    private func updateProfileImage(_ image: UIImage) {
+        // Redimensionar la imagen para optimizar el almacenamiento
+        let resizedImage = resizeImage(image, to: CGSize(width: 200, height: 200))
+        selectedProfileImage = resizedImage
+        
+        // Actualizar la UI inmediatamente
+        profileImageView?.image = resizedImage
+    }
+    
+    private func resizeImage(_ image: UIImage, to size: CGSize) -> UIImage {
+        UIGraphicsBeginImageContextWithOptions(size, false, 0.0)
+        defer { UIGraphicsEndImageContext() }
+        
+        image.draw(in: CGRect(origin: .zero, size: size))
+        return UIGraphicsGetImageFromCurrentImageContext() ?? image
     }
     
     private func setupMapView() {
@@ -263,6 +413,14 @@ class AddPersonViewController: UIViewController {
             age = Int(ageText)
         }
         
+        // Convertir imagen a base64 si existe
+        var profileImageBase64: String? = nil
+        if let image = selectedProfileImage {
+            if let imageData = image.jpegData(compressionQuality: 0.8) {
+                profileImageBase64 = imageData.base64EncodedString()
+            }
+        }
+        
         if let existingContact = contactToEdit {
             // Modo edición - actualizar contacto existente
             let updatedContact = Contact(
@@ -273,7 +431,8 @@ class AddPersonViewController: UIViewController {
                 edad: age,
                 hobbies: hobbies,
                 latitude: selectedLocation?.latitude,
-                longitude: selectedLocation?.longitude
+                longitude: selectedLocation?.longitude,
+                profileImage: profileImageBase64
             )
             
             ContactManager.shared.updateContact(updatedContact) { [weak self] result in
@@ -299,7 +458,8 @@ class AddPersonViewController: UIViewController {
                 edad: age,
                 hobbies: hobbies,
                 latitude: selectedLocation?.latitude,
-                longitude: selectedLocation?.longitude
+                longitude: selectedLocation?.longitude,
+                profileImage: profileImageBase64
             )
             
             ContactManager.shared.addContact(newContact) { [weak self] result in
@@ -384,8 +544,35 @@ extension AddPersonViewController {
         ageField.text = contact.edad != nil ? String(contact.edad!) : nil
         hobbiesField.text = contact.hobbies
         
-        // Si necesitas cargar ubicación, puedes agregar coordenadas al Contact struct
-        // Por ahora, dejamos el mapa en la posición inicial
+        // Cargar imagen de perfil si existe
+        if let profileImageBase64 = contact.profileImage,
+           let imageData = Data(base64Encoded: profileImageBase64),
+           let image = UIImage(data: imageData) {
+            selectedProfileImage = image
+            profileImageView?.image = image
+        } else {
+            selectedProfileImage = nil
+            profileImageView?.image = createDefaultProfileImage()
+        }
+        
+        // Si hay coordenadas, mostrar en el mapa
+        if let latitude = contact.latitude, let longitude = contact.longitude {
+            selectedLocation = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+            
+            // Quitar anotaciones anteriores
+            mapView.removeAnnotations(mapView.annotations)
+            
+            // Agregar anotación
+            let annotation = MKPointAnnotation()
+            annotation.coordinate = selectedLocation!
+            annotation.title = "Ubicación guardada"
+            annotation.subtitle = contact.direccion ?? "Sin dirección"
+            mapView.addAnnotation(annotation)
+            
+            // Centrar el mapa en la ubicación
+            let region = MKCoordinateRegion(center: selectedLocation!, latitudinalMeters: 5000, longitudinalMeters: 5000)
+            mapView.setRegion(region, animated: false)
+        }
         
         // Validar formulario después de cargar datos
         DispatchQueue.main.async {
