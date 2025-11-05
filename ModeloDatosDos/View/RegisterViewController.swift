@@ -266,24 +266,29 @@ class RegisterViewController: UIViewController {
         registerButton.isEnabled = false
         registerButton.setTitle("Registrando...", for: .normal)
         
-        // Crear usuario con UserManager
+        // Crear usuario con UserManager usando Firebase Auth
         let user = User(name: name, email: email, username: username, password: password, phone: phone)
         
-        UserManager.shared.registerUser(user) { [weak self] success, errorMessage in
+        UserManager.shared.registerUserWithAuth(user) { [weak self] success, errorMessage in
             DispatchQueue.main.async {
                 self?.registerButton.isEnabled = true
                 self?.registerButton.setTitle("Registrarse", for: .normal)
                 
                 if success {
-                    // Registro exitoso
+                    // Registro exitoso - mostrar mensaje de verificación
                     let alert = UIAlertController(
                         title: "¡Registro exitoso!",
-                        message: "Tu cuenta ha sido creada correctamente. Ahora puedes iniciar sesión con el usuario: \(username)",
+                        message: "Tu cuenta ha sido creada correctamente. Hemos enviado un email de verificación a \(email). Por favor, verifica tu email antes de iniciar sesión.",
                         preferredStyle: .alert
                     )
                     
-                    alert.addAction(UIAlertAction(title: "Iniciar sesión", style: .default) { _ in
+                    alert.addAction(UIAlertAction(title: "Entendido", style: .default) { _ in
                         self?.navigateToLogin()
+                    })
+                    
+                    // Agregar opción para reenviar email de verificación
+                    alert.addAction(UIAlertAction(title: "Reenviar email", style: .default) { _ in
+                        self?.resendVerificationEmail()
                     })
                     
                     self?.present(alert, animated: true)
@@ -291,6 +296,7 @@ class RegisterViewController: UIViewController {
                     // Error en el registro
                     let message = errorMessage ?? "No se pudo registrar el usuario. Inténtalo de nuevo."
                     self?.showAlert(title: "Error", message: message)
+                }
                 }
             }
         }
@@ -305,6 +311,19 @@ class RegisterViewController: UIViewController {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+    
+    private func resendVerificationEmail() {
+        UserManager.shared.resendVerificationEmail { [weak self] success, errorMessage in
+            DispatchQueue.main.async {
+                if success {
+                    self?.showAlert(title: "Email enviado", message: "El email de verificación ha sido reenviado. Revisa tu bandeja de entrada.")
+                } else {
+                    let message = errorMessage ?? "No se pudo enviar el email de verificación"
+                    self?.showAlert(title: "Error", message: message)
+                }
+            }
+        }
     }
 }
 

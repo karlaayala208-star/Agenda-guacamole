@@ -1,5 +1,6 @@
 import Foundation
 import FirebaseFirestore
+import FirebaseAuth
 
 struct User {
     let userId: String?
@@ -73,6 +74,149 @@ class UserManager {
     private let currentUserKey = "CurrentUser"
     
     private init() {}
+    
+    // MARK: - Firebase Auth Methods
+    
+    func registerUserWithAuth(_ user: User, completion: @escaping (Bool, String?) -> Void) {
+        // Primero crear usuario en Firebase Auth
+        Auth.auth().createUser(withEmail: user.email, password: user.password) { [weak self] authResult, error in
+            if let error = error {
+                let errorMessage = self?.getFirebaseAuthErrorMessage(error) ?? error.localizedDescription
+                completion(false, errorMessage)
+                return
+            }
+            
+            guard let firebaseUser = authResult?.user else {
+                completion(false, "Error al obtener datos del usuario creado")
+                return
+            }
+            
+            // Enviar email de verificación
+            firebaseUser.sendEmailVerification { error in
+                if let error = error {
+                    print("Error enviando email de verificación: \(error.localizedDescription)")
+                    // No fallar el registro por esto, solo informar
+                }
+            }
+            
+            // Crear el usuario en Firestore con el UID de Firebase Auth
+            var userData = user.toDictionary()
+            userData["userId"] = firebaseUser.uid
+            
+            self?.db.collection(self?.usersCollection ?? "users").document(firebaseUser.uid).setData(userData) { error in
+                if let error = error {
+                    print("Error guardando usuario en Firestore: \(error.localizedDescription)")
+                    completion(false, "Error al guardar datos del usuario")
+                } else {
+                    completion(true, nil)
+                }
+            }
+        }
+    }
+    
+    func signInWithAuth(email: String, password: String, completion: @escaping (Bool, String?) -> Void) {
+        Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
+            if let error = error {
+                let errorMessage = UserManager.shared.getFirebaseAuthErrorMessage(error)
+                completion(false, errorMessage)
+                return
+            }
+            
+            guard let firebaseUser = authResult?.user else {
+                completion(false, "Error al obtener datos del usuario")
+                return
+            }
+            
+            // Verificar si el email está verificado
+            if !firebaseUser.isEmailVerified {
+                completion(false, "Debes verificar tu email antes de iniciar sesión. Revisa tu bandeja de entrada.")
+                return
+            }
+            
+            // Login exitoso y email verificado
+            completion(true, nil)
+        }
+    }
+    
+    func resendVerificationEmail(completion: @escaping (Bool, String?) -> Void) {
+        guard let currentUser = Auth.auth().currentUser else {
+            completion(false, "No hay usuario logueado")
+            return
+        }
+        
+        currentUser.sendEmailVerification { error in
+            if let error = error {
+                print("Error reenviando email de verificación: \(error.localizedDescription)")
+                completion(false, "Error al enviar email de verificación")
+            } else {
+                completion(true, nil)
+            }
+        }
+    }
+    
+    func checkEmailVerificationStatus(completion: @escaping (Bool) -> Void) {
+        guard let currentUser = Auth.auth().currentUser else {
+            completion(false)
+            return
+        }
+        
+        currentUser.reload { error in
+            if let error = error {
+                print("Error actualizando estado del usuario: \(error.localizedDescription)")
+                completion(false)
+            } else {
+                completion(currentUser.isEmailVerified)
+            }
+        }
+    }
+    
+    func getCurrentFirebaseUser() -> FirebaseAuth.User? {
+        return Auth.auth().currentUser
+    }
+    
+    func signOut() {
+        do {
+            try Auth.auth().signOut()
+            logout() // Limpiar también UserDefaults
+        } catch {
+            print("Error al cerrar sesión: \(error.localizedDescription)")
+        }
+    }
+    
+    // MARK: - Error Handling Helper
+    
+    private func getFirebaseAuthErrorMessage(_ error: Error) -> String {
+        let nsError = error as NSError
+        let errorCode = nsError.code
+        
+        switch errorCode {
+        case 17007: // FIRAuthErrorCodeEmailAlreadyInUse
+            return "Este correo electrónico ya está en uso"
+        case 17008: // FIRAuthErrorCodeInvalidEmail
+            return "El correo electrónico no es válido"
+        case 17026: // FIRAuthErrorCodeWeakPassword
+            return "La contraseña es muy débil. Usa al menos 6 caracteres"
+        case 17011: // FIRAuthErrorCodeUserNotFound
+            return "No se encontró una cuenta con este correo"
+        case 17009: // FIRAuthErrorCodeWrongPassword
+            return "Contraseña incorrecta"
+        case 17020: // FIRAuthErrorCodeNetworkError
+            return "Error de conexión. Verifica tu internet"
+        case 17999: // FIRAuthErrorCodeInternalError
+            return "Error interno de Firebase. Verifica la configuración del proyecto y las reglas de autenticación"
+        case 17010: // FIRAuthErrorCodeUserDisabled
+            return "Esta cuenta ha sido deshabilitada"
+        case 17012: // FIRAuthErrorCodeOperationNotAllowed
+            return "⚠️ El método de autenticación Email/Password está deshabilitado.\n\nPara solucionarlo:\n1. Ve a Firebase Console\n2. Authentication → Sign-in method\n3. Habilita 'Email/Password'\n4. Guarda los cambios"
+        default:
+            // Buscar mensaje específico en la descripción
+            let description = error.localizedDescription.lowercased()
+            if description.contains("sign-in provider is disabled") {
+                return "⚠️ El método de autenticación Email/Password está deshabilitado.\n\nPara solucionarlo:\n1. Ve a Firebase Console\n2. Authentication → Sign-in method\n3. Habilita 'Email/Password'\n4. Guarda los cambios"
+            }
+            return "Error de autenticación (código \(errorCode)): \(error.localizedDescription)"
+        }
+    }
     
     // MARK: - Public Methods
     
