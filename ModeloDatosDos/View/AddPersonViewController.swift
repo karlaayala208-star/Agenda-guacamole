@@ -3,6 +3,7 @@ import MapKit
 import CoreLocation
 import PhotosUI
 
+//Funciones de ios para cada componente para las imagenes php y uiimagen
 class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     @IBOutlet weak var profileImageView: UIImageView!
     @IBOutlet weak var nameField: UITextField!
@@ -48,12 +49,13 @@ class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate,
         // Imagen por defecto inicialmente
         profileImageView.image = createDefaultProfileImage()
         
-        // Configurar gesture para tap
+        // Configurar gesto para tap
         profileImageView.isUserInteractionEnabled = true
         let tapGesture = UITapGestureRecognizer(target: self, action: #selector(profileImageTapped))
         profileImageView.addGestureRecognizer(tapGesture)
     }
     
+    //Metodo
     @objc private func profileImageTapped() {
         presentImagePicker()
     }
@@ -71,15 +73,16 @@ class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate,
         
         alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
         
-        // Para iPad
+        /*Para iPad
         if let popover = alert.popoverPresentationController {
             popover.sourceView = profileImageView
             popover.sourceRect = profileImageView.bounds
-        }
+        }*/
         
         present(alert, animated: true)
     }
     
+    //Muestra la galeria
     private func presentPhotoLibrary() {
         if #available(iOS 14, *) {
             // Usar PHPickerViewController para iOS 14+
@@ -123,7 +126,7 @@ class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate,
         return UIGraphicsGetImageFromCurrentImageContext()
     }
     
-    // MARK: - PHPickerViewControllerDelegate
+    // MARK: - PHPickerViewControllerDelegate Carga imagen de la galeria
     @available(iOS 14, *)
     func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
         picker.dismiss(animated: true)
@@ -144,7 +147,7 @@ class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate,
         }
     }
     
-    // MARK: - UIImagePickerControllerDelegate
+    // MARK: - UIImagePickerControllerDelegate Actualiza la imagen
     func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
         picker.dismiss(animated: true)
         
@@ -160,7 +163,7 @@ class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate,
             updateProfileImage(image)
         }
     }
-    
+    // MARK: - UIImagePickerControllerDelegate Se quita la alerta de cancelar
     func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
         picker.dismiss(animated: true)
     }

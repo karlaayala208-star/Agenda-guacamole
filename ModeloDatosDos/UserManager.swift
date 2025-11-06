@@ -81,7 +81,7 @@ class UserManager {
         // Primero crear usuario en Firebase Auth
         Auth.auth().createUser(withEmail: user.email, password: user.password) { [weak self] authResult, error in
             if let error = error {
-                let errorMessage = self?.getFirebaseAuthErrorMessage(error) ?? error.localizedDescription
+                let errorMessage = error.localizedDescription
                 completion(false, errorMessage)
                 return
             }
@@ -114,10 +114,11 @@ class UserManager {
         }
     }
     
+    //Hace el loging
     func signInWithAuth(email: String, password: String, completion: @escaping (Bool, String?) -> Void) {
         Auth.auth().signIn(withEmail: email, password: password) { authResult, error in
             if let error = error {
-                let errorMessage = UserManager.shared.getFirebaseAuthErrorMessage(error)
+                let errorMessage = error.localizedDescription
                 completion(false, errorMessage)
                 return
             }
@@ -138,6 +139,7 @@ class UserManager {
         }
     }
     
+    //Reenviar correo en caso de solicitar
     func resendVerificationEmail(completion: @escaping (Bool, String?) -> Void) {
         guard let currentUser = Auth.auth().currentUser else {
             completion(false, "No hay usuario logueado")
@@ -170,10 +172,12 @@ class UserManager {
         }
     }
     
+    //Obtiene la sesion del usuario
     func getCurrentFirebaseUser() -> FirebaseAuth.User? {
         return Auth.auth().currentUser
     }
     
+    //Cerrar sesion
     func signOut() {
         do {
             try Auth.auth().signOut()
@@ -182,42 +186,7 @@ class UserManager {
             print("Error al cerrar sesión: \(error.localizedDescription)")
         }
     }
-    
-    // MARK: - Error Handling Helper
-    
-    private func getFirebaseAuthErrorMessage(_ error: Error) -> String {
-        let nsError = error as NSError
-        let errorCode = nsError.code
         
-        switch errorCode {
-        case 17007: // FIRAuthErrorCodeEmailAlreadyInUse
-            return "Este correo electrónico ya está en uso"
-        case 17008: // FIRAuthErrorCodeInvalidEmail
-            return "El correo electrónico no es válido"
-        case 17026: // FIRAuthErrorCodeWeakPassword
-            return "La contraseña es muy débil. Usa al menos 6 caracteres"
-        case 17011: // FIRAuthErrorCodeUserNotFound
-            return "No se encontró una cuenta con este correo"
-        case 17009: // FIRAuthErrorCodeWrongPassword
-            return "Contraseña incorrecta"
-        case 17020: // FIRAuthErrorCodeNetworkError
-            return "Error de conexión. Verifica tu internet"
-        case 17999: // FIRAuthErrorCodeInternalError
-            return "Error interno de Firebase. Verifica la configuración del proyecto y las reglas de autenticación"
-        case 17010: // FIRAuthErrorCodeUserDisabled
-            return "Esta cuenta ha sido deshabilitada"
-        case 17012: // FIRAuthErrorCodeOperationNotAllowed
-            return "⚠️ El método de autenticación Email/Password está deshabilitado.\n\nPara solucionarlo:\n1. Ve a Firebase Console\n2. Authentication → Sign-in method\n3. Habilita 'Email/Password'\n4. Guarda los cambios"
-        default:
-            // Buscar mensaje específico en la descripción
-            let description = error.localizedDescription.lowercased()
-            if description.contains("sign-in provider is disabled") {
-                return "⚠️ El método de autenticación Email/Password está deshabilitado.\n\nPara solucionarlo:\n1. Ve a Firebase Console\n2. Authentication → Sign-in method\n3. Habilita 'Email/Password'\n4. Guarda los cambios"
-            }
-            return "Error de autenticación (código \(errorCode)): \(error.localizedDescription)"
-        }
-    }
-    
     // MARK: - Public Methods
     
     func registerUser(_ user: User, completion: @escaping (Bool, String?) -> Void) {
@@ -267,7 +236,7 @@ class UserManager {
                     print("Error verificando username: \(error.localizedDescription)")
                     // En caso de error de permisos, asumir que está disponible para no bloquear el registro
                     if error.localizedDescription.contains("permissions") {
-                        print("⚠️ Error de permisos en Firestore. Verifica las reglas de seguridad.")
+                        print("Error de permisos en Firestore. Verifica las reglas de seguridad.")
                         completion(true) // Permitir el registro cuando hay errores de permisos
                     } else {
                         completion(false) // Para otros errores, asumir no disponible
@@ -288,7 +257,7 @@ class UserManager {
                     print("Error verificando email: \(error.localizedDescription)")
                     // En caso de error de permisos, asumir que está disponible
                     if error.localizedDescription.contains("permissions") {
-                        print("⚠️ Error de permisos en Firestore. Verifica las reglas de seguridad.")
+                        print("Error de permisos en Firestore. Verifica las reglas de seguridad.")
                         completion(true) // Permitir el registro cuando hay errores de permisos
                     } else {
                         completion(false) // Para otros errores, asumir no disponible
@@ -309,7 +278,7 @@ class UserManager {
                 if let error = error {
                     print("Error validando credenciales: \(error.localizedDescription)")
                     if error.localizedDescription.contains("permissions") {
-                        print("⚠️ Error de permisos en Firestore. Verifica las reglas de seguridad.")
+                        print("Error de permisos en Firestore. Verifica las reglas de seguridad.")
                     }
                     completion(false)
                     return
@@ -335,7 +304,7 @@ class UserManager {
                 if let error = error {
                     print("Error validando credenciales por email: \(error.localizedDescription)")
                     if error.localizedDescription.contains("permissions") {
-                        print("⚠️ Error de permisos en Firestore. Verifica las reglas de seguridad.")
+                        print("Error de permisos en Firestore. Verifica las reglas de seguridad.")
                     }
                     completion(false)
                     return
@@ -533,7 +502,7 @@ class UserManager {
                         print("Error actualizando imagen de perfil: \(error.localizedDescription)")
                         completion(false, "Error actualizando imagen de perfil")
                     } else {
-                        print("✅ Imagen de perfil actualizada exitosamente")
+                        print("Imagen de perfil actualizada exitosamente")
                         completion(true, nil)
                     }
                 }

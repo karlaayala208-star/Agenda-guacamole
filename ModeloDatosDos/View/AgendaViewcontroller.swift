@@ -50,7 +50,7 @@ final class AgendaViewcontroller: UITableViewController, PHPickerViewControllerD
     }
     
     private func showDebugInfo() {
-        print("📊 Contactos actuales: \(contacts.count)")
+        print("Contactos actuales: \(contacts.count)")
         for contact in contacts {
             print("  - \(contact.nombre)")
         }
@@ -72,12 +72,12 @@ final class AgendaViewcontroller: UITableViewController, PHPickerViewControllerD
                 switch result {
                 case .success(let fetchedContacts):
                     self.contacts = fetchedContacts
-                    print("📊 Contactos obtenidos de Firestore: \(fetchedContacts.count)")
+                    print("Contactos obtenidos de Firestore: \(fetchedContacts.count)")
                     self.organizeContactsByLetter()
                     self.tableView.reloadData()
                     
                 case .failure(let error):
-                    print("❌ Error obteniendo contactos: \(error)")
+                    print("Error obteniendo contactos: \(error)")
                     self.showAlert(title: "Error", message: "No se pudieron cargar los contactos.")
                     self.contacts = []
                     self.tableView.reloadData()
@@ -277,9 +277,9 @@ final class AgendaViewcontroller: UITableViewController, PHPickerViewControllerD
         UserManager.shared.updateProfileImage(imageBase64: imageBase64) { [weak self] success, error in
             DispatchQueue.main.async {
                 if success {
-                    print("✅ Imagen de perfil guardada en Firestore")
+                    print("Imagen de perfil guardada en Firestore")
                 } else {
-                    print("❌ Error guardando imagen de perfil: \(error ?? "Error desconocido")")
+                    print("Error guardando imagen de perfil: \(error ?? "Error desconocido")")
                     self?.showImageSaveError()
                 }
             }
@@ -562,11 +562,11 @@ final class AgendaViewcontroller: UITableViewController, PHPickerViewControllerD
             DispatchQueue.main.async {
                 switch result {
                 case .success:
-                    print("✅ Contacto eliminado exitosamente")
+                    print("Contacto eliminado exitosamente")
                     self?.fetchContacts() // Recargar datos después de eliminar
                     
                 case .failure(let error):
-                    print("❌ Error al eliminar contacto: \(error)")
+                    print("Error al eliminar contacto: \(error)")
                     self?.showAlert(title: "Error", message: "No se pudo eliminar el contacto. Inténtalo de nuevo.")
                 }
             }
