@@ -297,7 +297,6 @@ class RegisterViewController: UIViewController {
                     let message = errorMessage ?? "No se pudo registrar el usuario. Inténtalo de nuevo."
                     self?.showAlert(title: "Error", message: message)
                 }
-                }
             }
         }
     }
