@@ -63,6 +63,13 @@ class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate,
     private func presentImagePicker() {
         let alert = UIAlertController(title: "Seleccionar imagen", message: "Elige una opción", preferredStyle: .actionSheet)
         
+        // Opción de cámara
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            alert.addAction(UIAlertAction(title: "Tomar foto", style: .default) { [weak self] _ in
+                self?.presentCamera()
+            })
+        }
+        
         alert.addAction(UIAlertAction(title: "Galería", style: .default) { [weak self] _ in
             self?.presentPhotoLibrary()
         })
@@ -73,13 +80,27 @@ class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate,
         
         alert.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
         
-        /*Para iPad
+        // Para iPad
         if let popover = alert.popoverPresentationController {
             popover.sourceView = profileImageView
             popover.sourceRect = profileImageView.bounds
-        }*/
+        }
         
         present(alert, animated: true)
+    }
+    
+    private func presentCamera() {
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            showAlert(title: "Error", message: "La cámara no está disponible en este dispositivo.")
+            return
+        }
+        
+        let picker = UIImagePickerController()
+        picker.delegate = self
+        picker.sourceType = .camera
+        picker.allowsEditing = true
+        picker.cameraCaptureMode = .photo
+        present(picker, animated: true)
     }
     
     //Muestra la galeria
