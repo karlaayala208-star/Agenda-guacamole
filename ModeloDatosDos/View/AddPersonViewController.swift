@@ -234,6 +234,13 @@ class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate,
         ageField.delegate = self
         hobbiesField.delegate = self
         
+        // Configurar tipos de teclado
+        phoneField.keyboardType = .phonePad
+        ageField.keyboardType = .numberPad
+        
+        // Agregar botón "Done" para teclados numéricos
+        addDoneButtonToNumericFields()
+        
         // Agregar targets para validación en tiempo real
         nameField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
         phoneField.addTarget(self, action: #selector(textFieldDidChange), for: .editingChanged)
@@ -248,6 +255,38 @@ class AddPersonViewController: UIViewController, PHPickerViewControllerDelegate,
         // Configurar botón inicialmente deshabilitado
         setupSaveButton()
         validateForm()
+    }
+    
+    private func addDoneButtonToNumericFields() {
+        // Crear barra de herramientas
+        let toolbar = UIToolbar()
+        toolbar.sizeToFit()
+        
+        // Crear botón "Done"
+        let doneButton = UIBarButtonItem(
+            title: "Done",
+            style: .done,
+            target: self,
+            action: #selector(dismissKeyboard)
+        )
+        
+        // Espacio flexible para alinear el botón a la derecha
+        let flexibleSpace = UIBarButtonItem(
+            barButtonSystemItem: .flexibleSpace,
+            target: nil,
+            action: nil
+        )
+        
+        // Agregar botones a la barra
+        toolbar.setItems([flexibleSpace, doneButton], animated: false)
+        
+        // Asignar la barra a los campos numéricos
+        phoneField.inputAccessoryView = toolbar
+        ageField.inputAccessoryView = toolbar
+    }
+    
+    @objc private func dismissKeyboard() {
+        view.endEditing(true)
     }
     
     private func setupSaveButton() {
