@@ -185,7 +185,48 @@ final class AgendaViewcontroller: UITableViewController, PHPickerViewControllerD
     
     // MARK: - Profile Image Methods
     @objc private func profileImageTapped() {
-        presentPhotoLibrary()
+        presentImageSourceOptions()
+    }
+    
+    private func presentImageSourceOptions() {
+        let alertController = UIAlertController(title: "Foto de perfil", message: "Elige una opción", preferredStyle: .actionSheet)
+        
+        // Opción de cámara
+        if UIImagePickerController.isSourceTypeAvailable(.camera) {
+            alertController.addAction(UIAlertAction(title: "Tomar foto", style: .default) { [weak self] _ in
+                self?.presentCamera()
+            })
+        }
+        
+        // Opción de galería
+        alertController.addAction(UIAlertAction(title: "Elegir de galería", style: .default) { [weak self] _ in
+            self?.presentPhotoLibrary()
+        })
+        
+        // Opción para cancelar
+        alertController.addAction(UIAlertAction(title: "Cancelar", style: .cancel))
+        
+        // Para iPad - configurar popover
+        if let popover = alertController.popoverPresentationController {
+            popover.sourceView = profileImageView
+            popover.sourceRect = profileImageView.bounds
+        }
+        
+        present(alertController, animated: true)
+    }
+    
+    private func presentCamera() {
+        guard UIImagePickerController.isSourceTypeAvailable(.camera) else {
+            showAlert(title: "Error", message: "La cámara no está disponible en este dispositivo.")
+            return
+        }
+        
+        let picker = UIImagePickerController()
+        picker.delegate = self
+        picker.sourceType = .camera
+        picker.allowsEditing = true
+        picker.cameraCaptureMode = .photo
+        present(picker, animated: true)
     }
 
     private func presentPhotoLibrary() {
